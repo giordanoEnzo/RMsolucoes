@@ -5,7 +5,7 @@ export function useInvoices() {
   const fetchInvoices = async () => {
     const { data, error } = await supabase
       .from('invoices')
-      .select('id, number, client_name, total_value') // ⬅️ removido start_date e end_date
+      .select('id, number, client_name, total_value')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

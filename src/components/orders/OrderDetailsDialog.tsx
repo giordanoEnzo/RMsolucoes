@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, DollarSign, User, Phone, MapPin, FileText, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { ServiceOrder, BudgetItem } from '@/types/database';
+import { useAuth } from '@/contexts/AuthContext';
 import TaskManagement from './TaskManagement';
 import ImageUpload from './ImageUpload';
 
@@ -19,6 +20,7 @@ interface OrderDetailsDialogProps {
   };
 }
 
+
 const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogProps) => {
   const getStatusLabel = (status: string) => {
     const statusMap = {
@@ -30,7 +32,7 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
       'ready_for_shipment': 'Pronto para Envio',
       'in_transit': 'Em Trânsito',
       'delivered': 'Entregue',
-      'invoiced': 'Faturado',
+      ' invoiced': 'Faturado',
       'completed': 'Finalizado',
       'cancelled': 'Cancelado'
     };
@@ -71,6 +73,8 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
     };
     return colorMap[urgency as keyof typeof colorMap] || 'bg-gray-100 text-gray-800';
   };
+
+  const {profile} = useAuth();
 
   const { data: budgetItems = [] } = useQuery({
     queryKey: ['budget_items', order.budget_id],
@@ -171,8 +175,14 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
                         <p><strong>Serviço:</strong> {item.service_name}</p>
                         <p><strong>Descrição:</strong> {item.description}</p>
                         <p><strong>Quantidade:</strong> {item.quantity}</p>
-                        <p><strong>Valor Unitário:</strong> R$ {item.unit_price.toFixed(2)}</p>
-                        <p><strong>Total:</strong> R$ {item.total_price.toFixed(2)}</p>
+
+                        {profile != null && profile.role !== 'worker' && profile.role !== 'manager' &&  (
+                            <>
+                              <p><strong>Valor Unitário:</strong> R$ {item.unit_price.toFixed(2)}</p>
+                              <p><strong>Total:</strong> R$ {item.total_price.toFixed(2)}</p>
+                            </>
+                          )}
+                        
                       </div>
                     ))}
                   </div>
@@ -209,7 +219,7 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {order.sale_value && (
+                {order.sale_value != null && profile?.role !== 'worker' && profile?.role !== 'manager'  && (
                   <div>
                     <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />

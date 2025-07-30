@@ -15,6 +15,7 @@ interface InventoryItem {
   id: string;
   name: string;
   current_quantity: number;
+  purchase_price?: number;
   created_at: string;
   updated_at: string;
 }
@@ -28,7 +29,8 @@ const Inventory = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    current_quantity: 0
+    current_quantity: 0,
+    purchase_price: 0,
   });
 
   const { data: items = [], isLoading } = useQuery({
@@ -109,7 +111,7 @@ const Inventory = () => {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', current_quantity: 0 });
+    setFormData({ name: '', current_quantity: 0, purchase_price: 0 });
     setEditingItem(null);
   };
 
@@ -126,7 +128,8 @@ const Inventory = () => {
     setEditingItem(item);
     setFormData({
       name: item.name,
-      current_quantity: item.current_quantity
+      current_quantity: item.current_quantity,
+      purchase_price: item.purchase_price?? 0,
     });
     setIsDialogOpen(true);
   };
@@ -185,6 +188,21 @@ const Inventory = () => {
                     required
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="purchase_price">Valor Pago na Compra</Label>
+                  <Input
+                    id="purchase_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.purchase_price}
+                    onChange={(e) =>
+                      setFormData({ ...formData, purchase_price: parseFloat(e.target.value) || 0 })
+                    }
+                    required
+                  />
+                </div>
                 <Button type="submit" className="w-full">
                   {editingItem ? 'Atualizar' : 'Criar'} Item
                 </Button>
@@ -222,6 +240,12 @@ const Inventory = () => {
                   <div className="text-sm text-gray-500">
                     unidades em estoque
                   </div>
+                  
+                  <div className="text-sm text-gray-700">
+                      Valor pago: R$ {item.purchase_price?.toFixed(2) ?? '0.00'}
+                  </div>
+
+
                   {item.current_quantity <= 10 && (
                     <div className="text-sm text-orange-600 font-medium">
                       ⚠️ Estoque baixo

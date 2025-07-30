@@ -1,3 +1,4 @@
+// src/hooks/useServiceOrdersForInvoice.ts
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useMemo } from 'react';
@@ -16,7 +17,6 @@ export function useServiceOrdersForInvoice(
   endDate: string
 ) {
   const fetchOrders = async (): Promise<ServiceOrder[]> => {
-    // Buscar OSs no status 'to_invoice' e com período dentro de service_start_date
     const { data, error } = await supabase
       .from('service_orders')
       .select('id, order_number, sale_value, service_start_date')
@@ -30,7 +30,6 @@ export function useServiceOrdersForInvoice(
       throw error;
     }
 
-    // Para cada OS, buscar horas em task_time_logs
     const ordersWithHours = await Promise.all(
       (data || []).map(async (os) => {
         const { data: logs, error: logsError } = await supabase

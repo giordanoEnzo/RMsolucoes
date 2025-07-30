@@ -13,7 +13,18 @@ import {
   Clock,
   ListTodo,
   CheckCircle,
+  CalendarIcon,
+  XCircle
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { ServiceOrder } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -35,12 +46,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const canEdit = profile && ['admin', 'manager'].includes(profile.role);
+  const canEdit = profile && ['admin', 'manager', 'worker'].includes(profile.role);
   const canDelete = profile && ['admin', 'manager'].includes(profile.role);
   const [mostrarExtras, setMostrarExtras] = useState(false);
-
-
   const [valoresExtras, setValoresExtras] = useState<{ descricao: string; valor: string }[]>([]);
+  const [openCalendar, setOpenCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // Adiciona um novo item extra vazio
   const adicionarItemExtra = () => {
@@ -83,6 +94,20 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
     }
   };
 
+  const handleConfirmarRetirada = async () => {
+    const { error } = await supabase
+      .from('service_orders')
+      .update({ status: 'to_invoice' })
+      .eq('id', order.id);
+
+    if (error) {
+      toast.error('Erro ao confirmar retirada');
+    } else {
+      toast.success('Retirada confirmada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    }
+  };
+
   const handleMoveToAwaitingInstallation = async () => {
     const { error } = await supabase
       .from('service_orders')
@@ -113,12 +138,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
 
   // Geração da fatura somando valores da OS + extras
   const handleGerarFatura = async () => {
-  if (!order.client_id || !order.client_name || !order.opening_date) {
-    
-  }
-
-  const startDate = order.service_start_date || order.opening_date.split('T')[0];
-  const endDate = new Date().toISOString().split('T')[0];
+  const saleValue = order.sale_value || 0;
 
   // Filtra somente itens extras válidos
   const extrasValidos = valoresExtras
@@ -129,6 +149,20 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
     }));
 
   const totalExtrasSomados = extrasValidos.reduce((acc, item) => acc + item.value, 0);
+  const totalFinal = saleValue + totalExtrasSomados;
+
+  // ✅ Verificação se valor total é zero
+  if (totalFinal === 0) {
+    toast.warning('Informe um valor antes de gerar a fatura.');
+    return;
+  }
+
+  if (!order.client_id || !order.client_name || !order.opening_date) {
+    
+  }
+
+  const startDate = order.service_start_date || order.opening_date.split('T')[0];
+  const endDate = new Date().toISOString().split('T')[0];
 
   const invoicePayload = {
     client_id: order.client_id,
@@ -140,11 +174,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
       {
         id: order.id,
         order_number: order.order_number,
-        sale_value: order.sale_value || 0,
+        sale_value: saleValue,
         total_hours: order.total_hours || 0,
       },
     ],
-    total_value: (order.sale_value || 0) + totalExtrasSomados,
+    total_value: totalFinal,
     total_time: order.total_hours || 0,
   };
 
@@ -165,7 +199,6 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
   queryClient.invalidateQueries({ queryKey: ['invoices'] });
   navigate('/invoices');
 };
-
 
   // Mapeamento de cores e textos de status
   const getStatusColor = (status: string) =>
@@ -241,6 +274,16 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
             <span>Abertura: {formatDate(order.opening_date)}</span>
           </div>
 
+          {/* mostra a data agendada*/}
+
+          {/* Adicione aqui o novo bloco para mostrar a data agendada */}
+    {order.service_start_date && (
+      <div className="flex items-center gap-2 text-slate-600">
+        <CalendarIcon size={16} />
+        <span>Instalação Do Serviço: {format(new Date(order.service_start_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
+      </div>
+    )}
+
           {order.deadline && (
             <div className="flex items-center gap-2 text-slate-600">
               <Clock size={16} />
@@ -266,7 +309,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
             </div>
           )}
 
-          {order.sale_value != null && profile?.role !== 'worker' && (
+          {order.sale_value != null && profile?.role !== 'worker' && profile?.role !== 'manager' && (
             <div className="flex items-center gap-2 text-slate-600">
               <DollarSign size={16} />
               <span>
@@ -280,7 +323,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
         </div>
 
         {order.status === 'quality_control' && canEdit && (
-          <div className="pt-2">
+          <div className="pt-2 flex gap-2 flex-wrap">
             <Button
               onClick={handleApproveQualityControl}
               className="bg-lime-600 hover:bg-lime-700 text-white"
@@ -288,19 +331,100 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
               <CheckCircle size={16} className="mr-2" />
               Aprovar Controle de Qualidade
             </Button>
+            
+            <Button
+              onClick={async () => {
+                const { error } = await supabase
+                  .from('service_orders')
+                  .update({ status: 'in_progress' })
+                  .eq('id', order.id);
+
+                if (error) {
+                  toast.error('Erro ao reprovar controle de qualidade');
+                } else {
+                  toast.success('Controle de qualidade reprovado! OS movida para Faturar.');
+                  queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <XCircle size={16} className="mr-2" />
+              Reprovar Controle de Qualidade
+            </Button>
           </div>
         )}
 
         {order.status === 'ready_for_pickup' && canEdit && (
-          <div className="pt-2">
-            <Button
-              onClick={handleMoveToAwaitingInstallation}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <CheckCircle size={16} className="mr-2" />
-              Confirmar Retirada / Agendar Instalação
-            </Button>
-          </div>
+          <>
+            <div className="pt-2 flex gap-2 flex-wrap">
+              <Button
+                onClick={handleConfirmarRetirada}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <CheckCircle size={16} className="mr-2" />
+                Confirmar Retirada
+              </Button>
+
+              <Button
+                onClick={() => setOpenCalendar(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <CalendarIcon size={16} className="mr-2" />
+                Agendar Instalação
+              </Button>
+            </div>
+
+            <Dialog open={openCalendar} onOpenChange={setOpenCalendar}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Selecionar Data da Instalação</DialogTitle>
+                </DialogHeader>
+
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  locale={ptBR}
+                  className="rounded-md border"
+                />
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button variant="ghost" onClick={() => setOpenCalendar(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!selectedDate) {
+                        toast.error('Selecione uma data.');
+                        return;
+                      }
+
+                      const formattedDate = selectedDate.toISOString().split('T')[0];
+
+                      const { error } = await supabase
+                        .from('service_orders')
+                        .update({
+                          status: 'awaiting_installation',
+                          service_start_date: formattedDate,
+                        })
+                        .eq('id', order.id);
+
+                      if (error) {
+                        toast.error('Erro ao agendar instalação');
+                      } else {
+                        toast.success('Instalação agendada!');
+                        queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+                        setOpenCalendar(false);
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Confirmar Agendamento
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
 
         {order.status === 'awaiting_installation' && canEdit && (
@@ -316,75 +440,75 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
         )}
 
         {/* Form para adicionar valores extras só aparece quando status for 'to_invoice' */}
-        {order.status === 'to_invoice' && canEdit && (
-        <div className="mt-4 border rounded p-4 bg-gray-50">
-          <h3 className="font-semibold mb-2">Faturamento</h3>
+        {order.status === 'to_invoice' && (
+          <div className="mt-4 border rounded p-4 bg-gray-50">
+            <h3 className="font-semibold mb-2">Faturamento</h3>
 
             {!mostrarExtras && (
-            <button
-              type="button"
-              onClick={() => {
-                setMostrarExtras(true);
-                if (valoresExtras.length === 0 || (valoresExtras.length === 1 && !valoresExtras[0].descricao && !valoresExtras[0].valor)) {
-                  adicionarItemExtra(); // Garante ao menos 1 item visível
-                }
-              }}
-              className="mb-3 text-blue-600 underline"
-            >
-              + Adicionar Valores Extras
-            </button>
-          )}
-
-          {mostrarExtras && (
-            <>
-              {valoresExtras.map((item, idx) => (
-                <div key={idx} className="mb-3">
-                  <input
-                    type="text"
-                    placeholder="Descrição (ex: Taxa de deslocamento)"
-                    value={item.descricao}
-                    onChange={(e) => atualizarItemExtra(idx, 'descricao', e.target.value)}
-                    className="w-full mb-1 border rounded px-2 py-1"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Valor (R$)"
-                    value={item.valor}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (/^\d*(?:[.,]\d{0,2})?$/.test(val) || val === '') {
-                        atualizarItemExtra(idx, 'valor', val);
-                      }
-                    }}
-                    className="w-full border rounded px-2 py-1"
-                  />
-                </div>
-              ))}
-
               <button
                 type="button"
-                onClick={adicionarItemExtra}
+                onClick={() => {
+                  setMostrarExtras(true);
+                  if (valoresExtras.length === 0 || (valoresExtras.length === 1 && !valoresExtras[0].descricao && !valoresExtras[0].valor)) {
+                    adicionarItemExtra(); // Garante ao menos 1 item visível
+                  }
+                }}
                 className="mb-3 text-blue-600 underline"
               >
-                + Adicionar Item Extra
+                + Adicionar Valores Extras
               </button>
+            )}
 
-              <p className="font-semibold">
-                Total Valores Extras: R$ {totalExtras.toFixed(2).replace('.', ',')}
-              </p>
-            </>
-          )}
+            {mostrarExtras && (
+              <>
+                {valoresExtras.map((item, idx) => (
+                  <div key={idx} className="mb-3">
+                    <input
+                      type="text"
+                      placeholder="Descrição (ex: Taxa de deslocamento)"
+                      value={item.descricao}
+                      onChange={(e) => atualizarItemExtra(idx, 'descricao', e.target.value)}
+                      className="w-full mb-1 border rounded px-2 py-1"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Valor (R$)"
+                      value={item.valor}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (/^\d*(?:[.,]\d{0,2})?$/.test(val) || val === '') {
+                          atualizarItemExtra(idx, 'valor', val);
+                        }
+                      }}
+                      className="w-full border rounded px-2 py-1"
+                    />
+                  </div>
+                ))}
 
-          <div className="flex gap-2 mt-4">
-            <Button
-              onClick={handleGerarFatura}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Gerar Fatura
-            </Button>
+                <button
+                  type="button"
+                  onClick={adicionarItemExtra}
+                  className="mb-3 text-blue-600 underline"
+                >
+                  + Adicionar Item Extra
+                </button>
+
+                <p className="font-semibold">
+                  Total Valores Extras: R$ {totalExtras.toFixed(2).replace('.', ',')}
+                </p>
+              </>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={handleGerarFatura}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Gerar Fatura
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         <div className="flex justify-between items-center pt-2 border-t">
           <span className="text-xs text-slate-500">

@@ -31,9 +31,8 @@ const Sidebar = () => {
       baseItems.push({ path: '/my-tasks', icon: CheckSquare, label: 'Minhas Tarefas' });
     }
 
-    if (profile?.role === 'admin' || profile?.role === 'manager') {
-      return [
-        ...baseItems,
+    if (profile?.role === 'admin') {
+      baseItems.push(
         { path: '/clients', icon: UserCircle, label: 'Clientes' },
         { path: '/services', icon: Package, label: 'Serviços' },
         { path: '/budgets', icon: Calculator, label: 'Orçamentos' },
@@ -43,8 +42,23 @@ const Sidebar = () => {
         { path: '/chamados', icon: Wrench, label: 'Chamados' },
         { path: '/invoices', icon: FileText, label: 'Faturas' },
         { path: '/settings', icon: Settings, label: 'Configurações' },
-      ];
+      );
     }
+
+    if ( profile?.role === 'manager') {
+      baseItems.push(
+        { path: '/clients', icon: UserCircle, label: 'Clientes' },
+        { path: '/services', icon: Package, label: 'Serviços' },
+        { path: '/inventory', icon: Package, label: 'Estoque' },
+        { path: '/employees', icon: Users, label: 'Funcionários' },
+        { path: '/reports', icon: BarChart3, label: 'Relatórios' },
+        { path: '/chamados', icon: Wrench, label: 'Chamados' },
+        { path: '/settings', icon: Settings, label: 'Configurações' },
+      );
+    }
+
+    // Adiciona o botão de logout ao final
+    baseItems.push({ path: '/logout', icon: LogOut, label: 'Sair', isLogout: true });
 
     return baseItems;
   };
@@ -88,35 +102,33 @@ const Sidebar = () => {
         <ul className="space-y-1">
           {navigationItems.map((item) => (
             <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ${
-                    isActive
-                      ? 'bg-[hsl(var(--sidebar-background))] text-white'
-                      : 'text-[hsl(var(--sidebar-foreground)/0.7)] hover:bg-[hsl(var(--sidebar-background))] hover:text-white'
-                  }`
-                }
-              >
-                <item.icon size={20} />
-                {isOpen && <span className="whitespace-nowrap">{item.label}</span>}
-              </NavLink>
+              {item.isLogout ? (
+                <button
+                  onClick={handleSignOut}
+                  className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-[hsl(var(--sidebar-foreground)/0.7)] hover:text-white hover:bg-[hsl(var(--sidebar-background))] transition-colors duration-200"
+                >
+                  <item.icon size={20} />
+                  {isOpen && <span className="whitespace-nowrap">{item.label}</span>}
+                </button>
+              ) : (
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-[hsl(var(--sidebar-background))] text-white'
+                        : 'text-[hsl(var(--sidebar-foreground)/0.7)] hover:bg-[hsl(var(--sidebar-background))] hover:text-white'
+                    }`
+                  }
+                >
+                  <item.icon size={20} />
+                  {isOpen && <span className="whitespace-nowrap">{item.label}</span>}
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>
       </nav>
-
-      {/* Botão de sair */}
-      <div className="p-4 border-t border-[hsl(var(--sidebar-border))]">
-        <Button
-          onClick={handleSignOut}
-          variant="ghost"
-          className="w-full justify-start text-[hsl(var(--sidebar-foreground)/0.7)] hover:text-white hover:bg-[hsl(var(--sidebar-background))] transition-colors duration-200"
-        >
-          <LogOut size={20} className="mr-2" />
-          {isOpen && 'Sair'}
-        </Button>
-      </div>
     </div>
   );
 };

@@ -18,7 +18,11 @@ export const useServiceOrderCalls = () => {
           `
           *,
           service_orders (
-            order_number
+            order_number,
+          client_name,
+          client_contact,
+          client_address,
+          service_description
           )
         `
         )

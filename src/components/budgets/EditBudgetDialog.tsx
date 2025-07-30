@@ -33,7 +33,7 @@ interface BudgetItem {
 interface EditBudgetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  budget: any; // ideal tipar melhor
+  budget: any;
 }
 
 const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
@@ -42,6 +42,29 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
   budget,
 }) => {
   const queryClient = useQueryClient();
+
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      if (userId) {
+        const { data, error } = await supabase
+          .from('profiles') // ajuste o nome da tabela se for diferente
+          .select('role')
+          .eq('id', userId)
+          .single();
+
+        if (!error && data?.role) {
+          setUserRole(data.role);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, []);
 
   const [formData, setFormData] = useState({
     client_name: '',
@@ -54,7 +77,6 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
 
   const [items, setItems] = useState<BudgetItem[]>([]);
 
-  // Puxa itens do orçamento quando abrir modal e tiver budget
   useEffect(() => {
     if (budget && open) {
       setFormData({
@@ -66,7 +88,6 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
         status: budget.status || 'pendente',
       });
 
-      // Puxar itens do banco
       supabase
         .from('budget_items')
         .select('*')
@@ -101,12 +122,10 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
     }
   }, [budget, open]);
 
-  // Handle form changes
   const handleItemChange = (index: number, field: keyof BudgetItem, value: any) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
 
-    // Recalcula total_price se quantity ou unit_price mudar
     if (field === 'quantity' || field === 'unit_price') {
       const qty = Number(newItems[index].quantity) || 0;
       const price = Number(newItems[index].unit_price) || 0;
@@ -135,15 +154,12 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
     setItems(newItems);
   };
 
-  // Total geral do orçamento
   const getTotalValue = () => {
     return items.reduce((acc, item) => acc + (item.total_price || 0), 0);
   };
 
-  // Mutação para atualizar orçamento + itens
   const updateBudget = useMutation({
     mutationFn: async () => {
-      // Atualiza orçamento principal
       const { error } = await supabase
         .from('budgets')
         .update({
@@ -158,14 +174,8 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
         .eq('id', budget.id);
       if (error) throw error;
 
-      // Deleta todos os itens antigos
-      const { error: delError } = await supabase
-        .from('budget_items')
-        .delete()
-        .eq('budget_id', budget.id);
-      if (delError) throw delError;
+      await supabase.from('budget_items').delete().eq('budget_id', budget.id);
 
-      // Insere os itens atualizados
       const itemsToInsert = items.map((item) => ({
         budget_id: budget.id,
         service_name: item.service_name,
@@ -203,7 +213,6 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Dados do orçamento */}
           <div>
             <Label>Nome do Cliente</Label>
             <Input
@@ -274,7 +283,9 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
                 <SelectItem value="pendente">Pendente</SelectItem>
                 <SelectItem value="aprovado">Aprovado</SelectItem>
                 <SelectItem value="reprovado">Reprovado</SelectItem>
-                <SelectItem value="sent">Enviado</SelectItem>         
+                {(userRole === 'admin' || userRole === 'manager') && (
+                  <SelectItem value="sent">Enviado</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

@@ -37,7 +37,8 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
   const { updateOrder, isUpdating } = useServiceOrders();
   const { workers } = useWorkers();
   const { createCall } = useServiceOrderCalls();
-  const { user } = useAuth(); // ✅ obter usuário autenticado
+  const { user, profile } = useAuth(); 
+  const isWorker = profile?.role === 'worker';
 
   const [formData, setFormData] = useState({
     client_name: '',
@@ -111,6 +112,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                       client_name: e.target.value,
                     }))
                   }
+                  disabled={isWorker}
                   required
                 />
               </div>
@@ -126,6 +128,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                       client_contact: e.target.value,
                     }))
                   }
+                  disabled={isWorker}
                   required
                 />
               </div>
@@ -142,6 +145,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                     client_address: e.target.value,
                   }))
                 }
+                disabled={isWorker}
                 required
               />
             </div>
@@ -157,6 +161,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                     service_description: e.target.value,
                   }))
                 }
+                disabled={isWorker}
                 required
                 rows={3}
               />
@@ -177,7 +182,9 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                       sale_value: e.target.value,
                     }))
                   }
+                  
                   placeholder="0,00"
+                  disabled={isWorker}
                 />
               </div>
 
@@ -191,8 +198,11 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                     setFormData((prev) => ({
                       ...prev,
                       deadline: e.target.value,
+                      
                     }))
+                    
                   }
+                  disabled={isWorker}
                 />
               </div>
             </div>
@@ -216,24 +226,38 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                 >
                   <SelectTrigger>
                     <SelectValue />
-                  </SelectTrigger>
+                  </SelectTrigger >
                   <SelectContent>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="production">Em Produção</SelectItem>
-                    <SelectItem value="on_hold">Em Espera</SelectItem>
-                    <SelectItem value="stopped">Paralisado</SelectItem>
-                    <SelectItem value="quality_control">
+                    <SelectItem value="pending" disabled={isWorker && "pending" !== "on_hold"}>
+                      Pendente
+                    </SelectItem>
+                                    <SelectItem value="in_progress" disabled={isWorker && "in_progress" !== "on_hold"}>
+                      Em Andamento
+                    </SelectItem>
+                    <SelectItem value="on_hold" disabled={false}>
+                      Em Espera
+                    </SelectItem>
+                    <SelectItem value="stopped" disabled={isWorker && "stopped" !== "on_hold"}>
+                      Paralisado
+                    </SelectItem>
+                    <SelectItem value="quality_control" disabled={isWorker && "quality_control" !== "on_hold"}>
                       Controle de Qualidade
                     </SelectItem>
-                    <SelectItem value="ready_for_pickup">
+                    <SelectItem value="ready_for_pickup" disabled={isWorker && "ready_for_pickup" !== "on_hold"}>
                       Aguardando Retirada
                     </SelectItem>
-                    <SelectItem value="awaiting_installation">
+                    <SelectItem value="awaiting_installation" disabled={isWorker && "awaiting_installation" !== "on_hold"}>
                       Aguardando Instalação
                     </SelectItem>
-                    <SelectItem value="to_invoice">Faturar</SelectItem>
-                    <SelectItem value="completed">Finalizado</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                    <SelectItem value="to_invoice" disabled={isWorker && "to_invoice" !== "on_hold"}>
+                      Faturar
+                    </SelectItem>
+                    <SelectItem value="completed" disabled={isWorker && "completed" !== "on_hold"}>
+                      Finalizado
+                    </SelectItem>
+                    <SelectItem value="cancelled" disabled={isWorker && "cancelled" !== "on_hold"}>
+                      Cancelado
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -248,6 +272,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                       urgency: value as Urgency,
                     }))
                   }
+                  disabled={isWorker}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -270,6 +295,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({
                       assigned_worker_id: value,
                     }))
                   }
+                  disabled={isWorker}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar colaborador" />

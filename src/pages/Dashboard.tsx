@@ -27,8 +27,15 @@ const Dashboard = () => {
   const canManageOrders = isAdmin || isManager;
 
   // Filtrar apenas as ordens mais recentes para o dashboard
-  const recentOrders = orders.slice(0, 5);
+const filteredOrders = profile?.role === 'worker'
+  ? orders.filter(
+      order =>
+        (order.assigned_worker_id === profile.id || order.created_by === profile.id) &&
+        order.status !== 'to_invoice'
+    )
+  : orders;
 
+const recentOrders = filteredOrders.slice(0, 5);
   const handleEditOrder = (order: ServiceOrder & { assigned_worker?: { name: string } }) => {
     setSelectedOrder(order);
     setShowEditDialog(true);

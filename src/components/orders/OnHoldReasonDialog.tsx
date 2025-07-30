@@ -12,7 +12,7 @@ interface OnHoldReasonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   serviceOrderId: string;
-  onReasonSubmitted: (reason: string) => void; // Corrigido aqui
+  onReasonSubmitted: (reason: string) => void;
 }
 
 const OnHoldReasonDialog = ({
@@ -29,7 +29,6 @@ const OnHoldReasonDialog = ({
 
     setLoading(true);
     try {
-      // Apenas envia o motivo para o componente pai
       onReasonSubmitted(reason.trim());
       onOpenChange(false);
       setReason('');

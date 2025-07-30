@@ -35,10 +35,12 @@ const Orders = () => {
 
     // Filtrar por perfil do usuário (apenas para workers)
     if (profile?.role === 'worker') {
-      filteredOrders = filteredOrders.filter(order => 
-        order.assigned_worker_id === profile.id || order.created_by === profile.id
-      );
-    }
+  filteredOrders = filteredOrders.filter(order =>
+    (order.assigned_worker_id === profile.id || order.created_by === profile.id) &&
+    order.status !== 'to_invoice'
+  );
+}
+
 
     // Filtrar por termo de busca
     if (searchTerm) {
@@ -248,7 +250,7 @@ const Orders = () => {
       {selectedOrder && (
         <>
           {/* Use different edit dialog based on user role */}
-          {isAdmin ? (
+          {isAdmin || isManager || isWorker ? (
             <EditOrderDialog
               open={showEditDialog}
               onOpenChange={setShowEditDialog}
@@ -266,7 +268,7 @@ const Orders = () => {
             open={showDeleteDialog}
             onOpenChange={setShowDeleteDialog}
             order={selectedOrder}
-          />
+          />.
 
           <OrderDetailsDialog
             open={showDetailsDialog}
