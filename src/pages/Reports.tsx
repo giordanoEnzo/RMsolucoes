@@ -10,14 +10,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FileText, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
 import EmployeeReports from '@/components/reports/EmployeeReports';
+
+// Cores para os gráficos
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 import ServiceReports from '@/components/reports/ServiceReports';
 import DateRangeFilter from '@/components/reports/DateRangeFilter';
 import ReportExportButtons from '@/components/reports/ReportExportButtons';
+import CSVExportInfo from '@/components/reports/CSVExportInfo';
+import { useReportExport } from '@/hooks/useReportExport';
 
 const Reports = () => {
   const { profile } = useAuth();
   const [dateRange, setDateRange] = useState('current_month');
+  const [showCSVDetails, setShowCSVDetails] = useState(false);
   const { startDate, endDate } = useDateRange(dateRange);
+  const { exportServiceOrdersToCSV } = useReportExport();
   
   useRealtimeReports();
 
@@ -127,8 +134,8 @@ const Reports = () => {
       {/* Date Range Filter */}
       <DateRangeFilter value={dateRange} onValueChange={setDateRange} />
 
-      {/* Export Buttons */}
-      <ReportExportButtons data={exportData} dateRange={dateRange} />
+      
+      
 
       {/* Wrapper div with ID for PDF export */}
       <div id="reports-content">
@@ -197,6 +204,62 @@ const Reports = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Seção de Exportação de Dados */}
+        <Card className="p-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Exportação de Dados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Relatórios em CSV</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Exporte dados completos das ordens de serviço em formato CSV para análise externa.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => exportServiceOrdersToCSV()}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors"
+                  >
+                    📊 Exportar Todas as OS
+                  </button>
+                  <button
+                    onClick={() => exportServiceOrdersToCSV({ from: startDate, to: endDate })}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                  >
+                    📅 Exportar OS do Período
+                  </button>
+                </div>
+                <CSVExportInfo showDetails={showCSVDetails} />
+                <button
+                  onClick={() => setShowCSVDetails(!showCSVDetails)}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  {showCSVDetails ? 'Ocultar detalhes dos campos' : 'Ver detalhes dos campos incluídos'}
+                </button>
+              </div>
+              
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-2">Relatórios em Excel</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Relatórios resumidos e gráficos em formato Excel.
+                </p>
+                <ReportExportButtons 
+                  data={{
+                    ordersStats,
+                    employeesCount,
+                    inventoryStats
+                  }}
+                  dateRange={dateRange}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tabs para diferentes tipos de relatório */}
         <Tabs defaultValue="overview" className="space-y-4">

@@ -27,13 +27,17 @@ const Dashboard = () => {
   const canManageOrders = isAdmin || isManager;
 
   // Filtrar apenas as ordens mais recentes para o dashboard
-const filteredOrders = profile?.role === 'worker'
-  ? orders.filter(
+const filteredOrders = (() => {
+  if (profile?.role === 'worker' || profile?.role === 'manager') {
+    return orders.filter(
       order =>
-        (order.assigned_worker_id === profile.id || order.created_by === profile.id) &&
-        order.status !== 'to_invoice'
-    )
-  : orders;
+        order.status !== 'to_invoice' &&
+        order.status !== 'invoiced' &&
+        (profile.role === 'manager' || order.assigned_worker_id === profile.id || order.created_by === profile.id)
+    );
+  }
+  return orders;
+})();
 
 const recentOrders = filteredOrders.slice(0, 5);
   const handleEditOrder = (order: ServiceOrder & { assigned_worker?: { name: string } }) => {
@@ -174,19 +178,21 @@ const recentOrders = filteredOrders.slice(0, 5);
       {selectedOrder && (
         <>
           {/* Use different edit dialog based on user role */}
-          {isAdmin ? (
+          {(isAdmin || isManager) && (
             <EditOrderDialog
               open={showEditDialog}
               onOpenChange={setShowEditDialog}
               order={selectedOrder}
             />
-          ) : (
-            <EditOrderDialogManager
-              open={showEditDialog}
-              onOpenChange={setShowEditDialog}
-              order={selectedOrder}
-            />
-          )}
+            )}
+            
+            {profile?.role === 'worker' && (
+              <EditOrderDialogManager
+                open={showEditDialog}
+                onOpenChange={setShowEditDialog}
+                order={selectedOrder}
+              />
+            )}
           
           <DeleteOrderDialog
             open={showDeleteDialog}

@@ -11,6 +11,7 @@ import { BudgetFilters } from '@/components/budgets/BudgetFilters';
 import { BudgetPDFGenerator } from '@/components/budgets/BudgetPDFGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { testBudgetTransfer, addTestItemsToBudget } from '@/utils/testBudgetTransfer';
 
 const Budgets = () => {
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
@@ -52,6 +53,25 @@ const Budgets = () => {
 
   const handleCreateOrder = (budgetId: string) => {
     createOrderFromBudget(budgetId);
+  };
+
+  const handleTestTransfer = async (budgetId: string) => {
+    try {
+      await testBudgetTransfer(budgetId);
+      toast.success('Teste executado! Verifique o console.');
+    } catch (error) {
+      toast.error('Erro no teste: ' + error);
+    }
+  };
+
+  const handleAddTestItems = async (budgetId: string) => {
+    try {
+      await addTestItemsToBudget(budgetId);
+      toast.success('Itens de teste adicionados!');
+      location.reload();
+    } catch (error) {
+      toast.error('Erro ao adicionar itens: ' + error);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -158,15 +178,21 @@ const Budgets = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={isCreatingOrder || ['approved', 'rejected', 'expired'].includes(budget.status)}
                         onClick={() => {
                           setSelectedBudget(budget);
                           setShowEditDialog(true);
                         }}
                       >
-                        ✏️ Editar
+                          ✏️ Editar
                       </Button>
 
+
                       <BudgetPDFGenerator budget={budget} />
+
+                     
+
+                      
                     </div>
 
                     {budget.status === 'sent' && (

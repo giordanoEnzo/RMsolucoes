@@ -34,6 +34,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { createInvoice } from '@/services/invoiceService';
 
+
+
 interface OrderCardProps {
   order: ServiceOrder & { assigned_worker?: { name: string } };
   onEdit: (order: ServiceOrder) => void;
@@ -45,6 +47,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
   const { profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Verifique se o usuário é worker ou manager, e se o status é 'to_invoice' ou 'invoiced'
+  if ((profile?.role === 'worker' || profile?.role === 'manager') && (order.status === 'to_invoice' || order.status === 'invoiced')) {
+    return null; // Impede a renderização do Card para essas ordens
+  }
 
   const canEdit = profile && ['admin', 'manager', 'worker'].includes(profile.role);
   const canDelete = profile && ['admin', 'manager'].includes(profile.role);
@@ -440,7 +447,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
         )}
 
         {/* Form para adicionar valores extras só aparece quando status for 'to_invoice' */}
-        {order.status === 'to_invoice' && (
+        {order.status === 'to_invoice' && profile?.role === 'admin' && (
           <div className="mt-4 border rounded p-4 bg-gray-50">
             <h3 className="font-semibold mb-2">Faturamento</h3>
 

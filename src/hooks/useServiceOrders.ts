@@ -76,7 +76,7 @@ export const useServiceOrders = () => {
           client_address: orderData.client_address || '',
           service_description: orderData.service_description || '',
           sale_value: orderData.sale_value || 0,
-          status: 'pending', // status inicial
+          status: 'pendente', // status inicial
           urgency: orderData.urgency || 'medium',
           assigned_worker_id: orderData.assigned_worker_id,
           deadline: orderData.deadline,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
 import { Package, Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,10 +25,12 @@ interface InventoryItem {
 const Inventory = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  useRealtimeInventory(); // Hook para atualizações em tempo real
-  
+  useRealtimeInventory();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     current_quantity: 0,
@@ -46,6 +50,12 @@ const Inventory = () => {
     },
     enabled: !!profile,
   });
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [items, searchTerm]);
 
   const createItemMutation = useMutation({
     mutationFn: async (itemData: Omit<InventoryItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -129,22 +139,20 @@ const Inventory = () => {
     setFormData({
       name: item.name,
       current_quantity: item.current_quantity,
-      purchase_price: item.purchase_price?? 0,
+      purchase_price: item.purchase_price ?? 0,
     });
     setIsDialogOpen(true);
   };
 
   if (!profile) {
     return (
-      <div className="p-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Carregando...</h2>
-        </div>
+      <div className="p-6 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Carregando...</h2>
       </div>
     );
   }
 
-  const canManage = ['admin', 'manager' ].includes(profile.role);
+  const canManage = ['admin', 'manager'].includes(profile.role);
 
   return (
     <div className="p-6">
@@ -163,9 +171,7 @@ const Inventory = () => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>
-                  {editingItem ? 'Editar Item' : 'Novo Item'}
-                </DialogTitle>
+                <DialogTitle>{editingItem ? 'Editar Item' : 'Novo Item'}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -188,7 +194,6 @@ const Inventory = () => {
                     required
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="purchase_price">Valor Pago na Compra</Label>
                   <Input
@@ -197,9 +202,7 @@ const Inventory = () => {
                     min="0"
                     step="0.01"
                     value={formData.purchase_price}
-                    onChange={(e) =>
-                      setFormData({ ...formData, purchase_price: parseFloat(e.target.value) || 0 })
-                    }
+                    onChange={(e) => setFormData({ ...formData, purchase_price: parseFloat(e.target.value) || 0 })}
                     required
                   />
                 </div>
@@ -212,6 +215,14 @@ const Inventory = () => {
         )}
       </div>
 
+      <div className="mb-4 max-w-sm">
+        <Input
+          placeholder="Buscar por nome do item..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -219,7 +230,7 @@ const Inventory = () => {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <Card key={item.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -234,31 +245,18 @@ const Inventory = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 mb-4">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {item.current_quantity}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    unidades em estoque
-                  </div>
-                  
+                  <div className="text-2xl font-bold text-blue-600">{item.current_quantity}</div>
+                  <div className="text-sm text-gray-500">unidades em estoque</div>
                   <div className="text-sm text-gray-700">
-                      Valor pago: R$ {item.purchase_price?.toFixed(2) ?? '0.00'}
+                    Valor pago: R$ {item.purchase_price?.toFixed(2) ?? '0.00'}
                   </div>
-
-
                   {item.current_quantity <= 10 && (
-                    <div className="text-sm text-orange-600 font-medium">
-                      ⚠️ Estoque baixo
-                    </div>
+                    <div className="text-sm text-orange-600 font-medium">⚠️ Estoque baixo</div>
                   )}
                 </div>
                 {canManage && (
                   <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(item)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
                       <Edit className="h-4 w-4 mr-1" />
                       Editar
                     </Button>

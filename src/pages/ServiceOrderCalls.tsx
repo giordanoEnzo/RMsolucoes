@@ -22,6 +22,11 @@ interface ServiceOrderCall {
     client_contact: string;
     client_address: string;
     service_description: string;
+    assigned_worker_id: string | null;
+    assigned_worker?: {
+      id: string;
+      name: string;
+    };
   };
 }
 
@@ -29,6 +34,7 @@ const ServiceOrderCalls: React.FC = () => {
   const [calls, setCalls] = useState<ServiceOrderCall[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // 🔧 Função corrigida que busca os chamados
   const fetchCalls = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -40,7 +46,12 @@ const ServiceOrderCalls: React.FC = () => {
           client_name,
           client_contact,
           client_address,
-          service_description
+          service_description,
+          assigned_worker_id,
+          assigned_worker:assigned_worker_id (
+            id,
+            name
+          )
         )
       `)
       .order('created_at', { ascending: false });
@@ -55,19 +66,17 @@ const ServiceOrderCalls: React.FC = () => {
   };
 
   const resolveCall = async (id: string) => {
-    // Buscar o chamado para obter o service_order_id
     const { data: callData, error: fetchError } = await supabase
       .from('service_order_calls')
       .select('service_order_id')
       .eq('id', id)
       .single();
 
-    if (fetchError) {
+    if (fetchError || !callData) {
       console.error('Erro ao buscar chamado para resolver:', fetchError);
       return;
     }
 
-    // Atualiza o chamado para resolvido
     const { error: updateCallError } = await supabase
       .from('service_order_calls')
       .update({ resolved: true })
@@ -78,18 +87,16 @@ const ServiceOrderCalls: React.FC = () => {
       return;
     }
 
-    // Atualiza o status da ordem de serviço para 'in_progress'
     const { error: updateOrderError } = await supabase
       .from('service_orders')
       .update({ status: 'in_progress' })
       .eq('id', callData.service_order_id);
 
     if (updateOrderError) {
-      console.error('Erro ao atualizar status da ordem de serviço:', updateOrderError);
+      console.error('Erro ao atualizar status da OS:', updateOrderError);
       return;
     }
 
-    // Recarrega a lista de chamados
     await fetchCalls();
   };
 
@@ -173,6 +180,12 @@ const ServiceOrderCalls: React.FC = () => {
                 <p className="text-sm text-slate-600 mt-1">
                   ❗ Motivo do chamado: {call.reason}
                 </p>
+
+                {call.service_orders?.assigned_worker?.name && (
+                  <p className="text-sm text-slate-500">
+                    👷 Responsável: {call.service_orders.assigned_worker.name}
+                  </p>
+                )}
               </div>
 
               <Badge

@@ -41,7 +41,7 @@ export const useBudgets = (filters?: {
       }
 
       if (filters?.dateTo) {
-        query = query.lte('created_at', filters.dateTo);
+        query = query.lt('created_at', filters.dateTo);
       }
 
       const { data, error } = await query;
@@ -111,9 +111,13 @@ export const useBudgets = (filters?: {
 
   const createOrderFromBudgetMutation = useMutation({
     mutationFn: async (budgetId: string) => {
+      // Buscar o orçamento com seus itens
       const { data: budget, error: budgetError } = await supabase
         .from('budgets')
-        .select('*')
+        .select(`
+          *,
+          budget_items(*)
+        `)
         .eq('id', budgetId)
         .single();
 
@@ -151,10 +155,11 @@ export const useBudgets = (filters?: {
           client_address: budget.client_address,
           service_description: budget.description,
           sale_value: budget.total_value,
-          status: 'pending',
+          status: 'pending', // Status inicial como 'pending'
           urgency: 'medium',
           budget_id: budgetId,
           opening_date: new Date().toISOString().split('T')[0],
+          service_start_date: new Date().toISOString().split('T')[0],
           created_by: userData.user?.id,
         })
         .select()
@@ -162,6 +167,30 @@ export const useBudgets = (filters?: {
 
       if (orderError) throw orderError;
 
+      // Transferir itens do orçamento para a OS
+      if (budget.budget_items && budget.budget_items.length > 0) {
+        const serviceOrderItems = budget.budget_items.map((item: any) => ({
+          order_id: order.id,
+          service_name: item.service_name,
+          service_description: item.description || '',
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          sale_value: item.total_price,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('service_order_items')
+          .insert(serviceOrderItems);
+
+        if (itemsError) {
+          console.error('Erro ao transferir itens:', itemsError);
+          // Não vamos falhar se não conseguir transferir itens
+        } else {
+          console.log(`${serviceOrderItems.length} itens transferidos do orçamento para a OS`);
+        }
+      }
+
+      // Atualizar status do orçamento
       await supabase
         .from('budgets')
         .update({ status: 'approved' })
@@ -172,7 +201,7 @@ export const useBudgets = (filters?: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      toast.success('Ordem de serviço criada a partir do orçamento!');
+      toast.success('OS criada com itens do orçamento!');
     },
     onError: (error: any) => {
       toast.error('Erro ao criar OS: ' + error.message);

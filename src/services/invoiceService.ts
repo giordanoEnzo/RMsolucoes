@@ -64,10 +64,31 @@ export const createInvoice = async (payload: InvoicePayload) => {
       hoursPerOrder[orderId] += Number(log.hours_worked) || 0;
     });
 
-    // Atualizar `total_hours` com base nos logs reais
+    // Buscar itens das ordens de serviço
+    const { data: items, error: itemsError } = await supabase
+      .from('service_order_items')
+      .select('*')
+      .in('order_id', orders.map((o) => o.id));
+
+    if (itemsError) {
+      console.error('Erro ao buscar itens:', itemsError);
+      // Não vamos falhar se não conseguir buscar itens
+    }
+
+    // Agrupar itens por OS
+    const itemsPerOrder: Record<string, any[]> = {};
+    items?.forEach((item) => {
+      if (!itemsPerOrder[item.order_id]) {
+        itemsPerOrder[item.order_id] = [];
+      }
+      itemsPerOrder[item.order_id].push(item);
+    });
+
+    // Atualizar `total_hours` com base nos logs reais e adicionar itens
     const ordersFormatted = orders.map((order) => ({
       ...order,
       total_hours: hoursPerOrder[order.id] || 0,
+      items: itemsPerOrder[order.id] || [],
     }));
 
     const total_service_time = ordersFormatted.reduce(
@@ -86,8 +107,8 @@ export const createInvoice = async (payload: InvoicePayload) => {
         client_name: payload.client_name,
         start_date: payload.start_date,
         end_date: payload.end_date,
-        extras: payload.extras,
-        orders: ordersFormatted,
+        extras: payload.extras as any,
+        orders: ordersFormatted as any,
         total_value,
         total_time: total_service_time,
       })
@@ -121,3 +142,33 @@ export const deleteInvoice = async (invoiceId: string) => {
 
   if (error) throw new Error(error.message);
 };
+
+// Tipo para dados da invoice
+export interface InvoiceData {
+  id: string;
+  client_id: string;
+  client_name: string;
+  start_date: string;
+  end_date: string;
+  total_value: number;
+  total_time: number;
+  orders: {
+    id: string;
+    order_number: string;
+    sale_value: number;
+    total_hours: number;
+    items?: {
+      id: string;
+      service_name: string;
+      service_description: string;
+      quantity: number;
+      unit_price: number;
+      sale_value: number;
+    }[];
+  }[];
+  extras?: {
+    description: string;
+    value: number;
+  }[];
+  created_at: string;
+}

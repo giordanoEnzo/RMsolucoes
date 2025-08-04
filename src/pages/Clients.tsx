@@ -8,103 +8,60 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserCircle, Plus, Edit, Trash2, Phone, MapPin, FileText } from 'lucide-react';
+import { UserCircle, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Clients = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  useRealtimeClients(); // Hook para atualizações em tempo real
-  
+  useRealtimeClients();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
+    company_name: '',
+    cnpj_cpf: '',
     contact: '',
     address: '',
-    cnpj_cpf: ''
+    number: '',
+    neighborhood: '',
+    cep: '',
+    complement: '',
+    state: ''
   });
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data as Client[];
-    },
+    }
   });
 
-  const createClientMutation = useMutation({
-    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('clients')
-        .insert(clientData)
-        .select()
-        .single();
+  const normalize = (text: string = '') => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente criado com sucesso!');
-      setIsDialogOpen(false);
-      resetForm();
-    },
-    onError: (error: any) => {
-      toast.error('Erro ao criar cliente: ' + error.message);
-    },
-  });
-
-  const updateClientMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Client> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('clients')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente atualizado com sucesso!');
-      setIsDialogOpen(false);
-      resetForm();
-    },
-    onError: (error: any) => {
-      toast.error('Erro ao atualizar cliente: ' + error.message);
-    },
-  });
-
-  const deleteClientMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente excluído com sucesso!');
-    },
-    onError: (error: any) => {
-      toast.error('Erro ao excluir cliente: ' + error.message);
-    },
-  });
+  const normalizedSearch = normalize(searchTerm);
+  const filteredClients = clients.filter((client) =>
+    [
+      client.name,
+      client.company_name,
+      client.cnpj_cpf,
+      client.contact,
+      client.address,
+      client.neighborhood,
+      client.state
+    ].some(field => normalize(field || '').includes(normalizedSearch))
+  );
 
   const resetForm = () => {
-    setFormData({ name: '', contact: '', address: '', cnpj_cpf: '' });
+    setFormData({
+      name: '', company_name: '', cnpj_cpf: '', contact: '', address: '',
+      number: '', neighborhood: '', cep: '', complement: '', state: ''
+    });
     setEditingClient(null);
   };
 
@@ -120,25 +77,24 @@ const Clients = () => {
   const handleEdit = (client: Client) => {
     setEditingClient(client);
     setFormData({
-      name: client.name,
-      contact: client.contact,
-      address: client.address,
-      cnpj_cpf: client.cnpj_cpf || ''
+      name: client.name || '',
+      company_name: client.company_name || '',
+      cnpj_cpf: client.cnpj_cpf || '',
+      contact: client.contact || '',
+      address: client.address || '',
+      number: client.number || '',
+      neighborhood: client.neighborhood || '',
+      cep: client.cep || '',
+      complement: client.complement || '',
+      state: client.state || ''
     });
     setIsDialogOpen(true);
   };
 
   const formatCnpjCpf = (value: string) => {
-    // Remove all non-numeric characters
     const numbers = value.replace(/\D/g, '');
-    
-    if (numbers.length <= 11) {
-      // CPF format: 000.000.000-00
-      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    } else {
-      // CNPJ format: 00.000.000/0000-00
-      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
+    if (numbers.length <= 11) return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
   };
 
   const handleCnpjCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,13 +102,70 @@ const Clients = () => {
     setFormData({ ...formData, cnpj_cpf: formatted });
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const formatted = formatPhone(e.target.value);
+  setFormData({ ...formData, contact: formatted });
+};
+
+
+  const formatPhone = (value: string) => {
+  const numbers = value.replace(/\D/g, '');
+
+  
+  if (numbers.length <= 2) return `+${numbers}`;
+  if (numbers.length <= 4) return `+${numbers.slice(0, 2)} ${numbers.slice(2)}`;
+  if (numbers.length <= 9) return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4)}`;
+  if (numbers.length <= 13) return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 9)}-${numbers.slice(9)}`;
+  return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 9)}-${numbers.slice(9, 13)}`;
+};
+
+  const createClientMutation = useMutation({
+    mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error } = await supabase.from('clients').insert(clientData).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Cliente criado com sucesso!');
+      setIsDialogOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => toast.error('Erro ao criar cliente: ' + error.message)
+  });
+
+  const updateClientMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Client> & { id: string }) => {
+      const { data, error } = await supabase.from('clients').update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Cliente atualizado com sucesso!');
+      setIsDialogOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => toast.error('Erro ao atualizar cliente: ' + error.message)
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('clients').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Cliente excluído com sucesso!');
+    },
+    onError: (error: any) => toast.error('Erro ao excluir cliente: ' + error.message)
+  });
+
   if (!profile || !['admin', 'manager'].includes(profile.role)) {
     return (
-      <div className="p-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Acesso Negado</h2>
-          <p className="text-gray-600">Apenas administradores e gerentes podem gerenciar clientes.</p>
-        </div>
+      <div className="p-6 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Acesso Negado</h2>
+        <p className="text-gray-600">Apenas administradores e gerentes podem gerenciar clientes.</p>
       </div>
     );
   }
@@ -167,60 +180,72 @@ const Clients = () => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Cliente
+              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
-              </DialogTitle>
+              <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="cnpj_cpf">CNPJ/CPF</Label>
-                <Input
-                  id="cnpj_cpf"
-                  value={formData.cnpj_cpf}
-                  onChange={handleCnpjCpfChange}
-                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                  maxLength={18}
-                />
-              </div>
-              <div>
-                <Label htmlFor="contact">Contato</Label>
-                <Input
-                  id="contact"
-                  value={formData.contact}
-                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">Endereço</Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                {editingClient ? 'Atualizar' : 'Criar'} Cliente
-              </Button>
-            </form>
+                <div>
+                  <Label>Nome</Label>
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}  />
+                </div>
+                <div>
+                  <Label>Razão Social</Label>
+                  <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>CNPJ/CPF</Label>
+                  <Input value={formData.cnpj_cpf} onChange={handleCnpjCpfChange} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={18} />
+                </div>
+                <div>
+                  <Label>Contato</Label>
+                  <Input
+                    value={formData.contact}
+                    onChange={handlePhoneChange}
+                    placeholder="+55 (35) 3539-3344"
+                  />
+                </div>
+                <div>
+                  <Label>Endereço</Label>
+                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })}  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Número</Label>
+                    <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Bairro</Label>
+                    <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>CEP</Label>
+                    <Input value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Complemento</Label>
+                    <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
+                </div>
+                <Button type="submit" className="w-full">
+                  {editingClient ? 'Atualizar' : 'Criar'} Cliente
+                </Button>
+              </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="mb-4 max-w-md">
+        <Input placeholder="Buscar por nome, razão social, CPF/CNPJ, bairro, etc..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
 
       {isLoading ? (
@@ -230,7 +255,7 @@ const Clients = () => {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {clients.map((client) => (
+          {filteredClients.map((client) => (
             <Card key={client.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-center space-x-2">
@@ -239,38 +264,22 @@ const Clients = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 mb-4">
-                  {client.cnpj_cpf && (
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <FileText className="h-4 w-4" />
-                      <span>{client.cnpj_cpf}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Phone className="h-4 w-4" />
-                    <span>{client.contact}</span>
-                  </div>
-                  <div className="flex items-start space-x-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <span>{client.address}</span>
-                  </div>
+                <div className="space-y-2 mb-4 text-sm text-gray-600">
+                  {client.company_name && <div><strong>Razão Social:</strong> {client.company_name}</div>}
+                  {client.cnpj_cpf && <div><strong>CNPJ/CPF:</strong> {client.cnpj_cpf}</div>}
+                  <div><strong>Contato:</strong> {client.contact}</div>
+                  <div><strong>Endereço:</strong> {client.address}, {client.number || 'S/N'}</div>
+                  {client.neighborhood && <div><strong>Bairro:</strong> {client.neighborhood}</div>}
+                  {client.cep && <div><strong>CEP:</strong> {client.cep}</div>}
+                  {client.complement && <div><strong>Complemento:</strong> {client.complement}</div>}
+                  {client.state && <div><strong>Estado:</strong> {client.state}</div>}
                 </div>
                 <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(client)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editar
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(client)}>
+                    <Edit className="h-4 w-4 mr-1" /> Editar
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteClientMutation.mutate(client.id)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Excluir
+                  <Button variant="destructive" size="sm" onClick={() => deleteClientMutation.mutate(client.id)}>
+                    <Trash2 className="h-4 w-4 mr-1" /> Excluir
                   </Button>
                 </div>
               </CardContent>

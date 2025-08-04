@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +15,8 @@ import { Service } from '@/types/database';
 const Services = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
+
+  const [filterText, setFilterText] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ const Services = () => {
     description: '',
     default_price: '',
     estimated_hours: '',
-    category: ''
+    category: '',
   });
 
   const { data: services = [], isLoading } = useQuery({
@@ -33,10 +34,17 @@ const Services = () => {
         .from('services')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       return data as Service[];
     },
+  });
+
+  const filteredServices = services.filter((service) => {
+    const text = filterText.toLowerCase();
+    return (
+      service.name.toLowerCase().includes(text) ||
+      (service.category?.toLowerCase().includes(text) ?? false)
+    );
   });
 
   const createServiceMutation = useMutation({
@@ -52,7 +60,6 @@ const Services = () => {
         .insert(serviceData)
         .select()
         .single();
-
       if (error) throw error;
       return data;
     },
@@ -81,7 +88,6 @@ const Services = () => {
         .eq('id', id)
         .select()
         .single();
-
       if (error) throw error;
       return data;
     },
@@ -98,11 +104,7 @@ const Services = () => {
 
   const deleteServiceMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('services')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('services').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -120,13 +122,12 @@ const Services = () => {
       description: '',
       default_price: '',
       estimated_hours: '',
-      category: ''
+      category: '',
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     const serviceData = {
       name: formData.name,
       description: formData.description || null,
@@ -149,7 +150,7 @@ const Services = () => {
       description: service.description || '',
       default_price: service.default_price?.toString() || '',
       estimated_hours: service.estimated_hours?.toString() || '',
-      category: service.category || ''
+      category: service.category || '',
     });
   };
 
@@ -157,10 +158,8 @@ const Services = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Carregando...</h2>
-        </div>
+      <div className="p-6 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Carregando...</h2>
       </div>
     );
   }
@@ -172,88 +171,88 @@ const Services = () => {
           <h1 className="text-3xl font-bold text-gray-900">Cadastro de Serviços</h1>
           <p className="text-gray-600 mt-1">Gerencie os serviços oferecidos</p>
         </div>
-        
-        {canManage && (
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus size={16} />
-                Novo Serviço
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Criar Novo Serviço</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Nome do Serviço</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="category">Categoria</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+
+        <div className="flex gap-4 items-center w-full md:w-auto">
+          <Input
+            type="text"
+            placeholder="Filtrar por nome ou categoria"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="md:min-w-[300px]"
+          />
+
+          {canManage && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                  <Button
+                    className="flex items-center gap-2"
+                    onClick={() => {
+                      resetForm(); // limpa os dados do formulário
+                      setEditingService(null); // garante que não esteja em modo edição
+                    }}
+                  >
+                    <Plus size={16} />
+                    Novo Serviço
+                  </Button>
+                </DialogTrigger>
+
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                <DialogTitle>{editingService ? 'Editar Serviço' : 'Criar Novo Serviço'}</DialogTitle>
+
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="default_price">Preço Padrão (R$)</Label>
-                    <Input
-                      id="default_price"
-                      type="number"
-                      step="0.01"
-                      value={formData.default_price}
-                      onChange={(e) => setFormData({ ...formData, default_price: e.target.value })}
+                    <Label htmlFor="name">Nome do Serviço</Label>
+                    <Textarea
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="max-h-40 overflow-y-auto"
+                      required
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="max-h-40 overflow-y-auto"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="default_price">Preço Padrão (R$)</Label>
+                      <Input
+                        id="default_price"
+                        type="number"
+                        step="0.01"
+                        value={formData.default_price}
+                        onChange={(e) => setFormData({ ...formData, default_price: e.target.value })}
+                      />
+                    </div>
+                    
                   </div>
                   
-                  <div>
-                    <Label htmlFor="estimated_hours">Horas Estimadas</Label>
-                    <Input
-                      id="estimated_hours"
-                      type="number"
-                      step="0.5"
-                      value={formData.estimated_hours}
-                      onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
-                    />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={createServiceMutation.isPending}>
+                      {editingService ? 'Salvar Alterações' : (createServiceMutation.isPending ? 'Criando...' : 'Criar Serviço')}
+                    </Button>
+
                   </div>
-                </div>
-                
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={createServiceMutation.isPending}>
-                    {createServiceMutation.isPending ? 'Criando...' : 'Criar Serviço'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {services.map((service) => (
+        {filteredServices.map((service) => (
           <Card key={service.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -262,11 +261,7 @@ const Services = () => {
               </CardTitle>
               {canManage && (
                 <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(service)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(service)}>
                     <Edit size={16} />
                   </Button>
                   <Button
@@ -281,22 +276,14 @@ const Services = () => {
               )}
             </CardHeader>
             <CardContent>
-              {service.category && (
-                <p className="text-xs text-blue-600 mb-2">{service.category}</p>
-              )}
-              {service.description && (
-                <p className="text-sm text-gray-600 mb-3">{service.description}</p>
-              )}
+              {service.category && <p className="text-xs text-blue-600 mb-2">{service.category}</p>}
+              {service.description && <p className="text-sm text-gray-600 mb-3">{service.description}</p>}
               <div className="flex justify-between text-sm">
                 {service.default_price && (
-                  <span className="font-medium text-green-600">
-                    R$ {service.default_price.toFixed(2)}
-                  </span>
+                  <span className="font-medium text-green-600">R$ {service.default_price.toFixed(2)}</span>
                 )}
                 {service.estimated_hours && (
-                  <span className="text-gray-500">
-                    {service.estimated_hours}h
-                  </span>
+                  <span className="text-gray-500">{service.estimated_hours}h</span>
                 )}
               </div>
             </CardContent>
@@ -313,23 +300,13 @@ const Services = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="edit-name">Nome do Serviço</Label>
-              <Input
+              <Textarea
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </div>
-            
-            <div>
-              <Label htmlFor="edit-category">Categoria</Label>
-              <Input
-                id="edit-category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
-            </div>
-            
             <div>
               <Label htmlFor="edit-description">Descrição</Label>
               <Textarea
@@ -338,7 +315,6 @@ const Services = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
-            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-default_price">Preço Padrão (R$)</Label>
@@ -351,16 +327,6 @@ const Services = () => {
                 />
               </div>
               
-              <div>
-                <Label htmlFor="edit-estimated_hours">Horas Estimadas</Label>
-                <Input
-                  id="edit-estimated_hours"
-                  type="number"
-                  step="0.5"
-                  value={formData.estimated_hours}
-                  onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
-                />
-              </div>
             </div>
             
             <div className="flex justify-end gap-2">

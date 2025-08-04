@@ -12,14 +12,31 @@ import { supabase } from '@/integrations/supabase/client';
 import { Invoice } from '@/types/database';
 //import NewInvoiceDialog from '@/components/invoices/NewInvoiceDialog';
 import { InvoicePDFGenerator } from '@/components/invoices/InvoicePDFGenerator';
+import { getInvoiceItemsByOrderIds } from '@/utils/invoiceUtils';
+import { testInvoiceItems } from '@/utils/testInvoiceItems';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useClients } from '@/hooks/useClients';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+
+// Função para formatar data do formato ISO (YYYY-MM-DD) para DD/MM/YYYY
+const formatDateForDisplay = (dateString: string): string => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+// Função para validar se a data está no formato correto
+const isValidDate = (dateString: string): boolean => {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
+};
 
 const fetchInvoices = async (filters: {
-  clientId: string;
+  clientName: string;
   startDate: string;
   endDate: string;
 }): Promise<Invoice[]> => {
@@ -28,14 +45,9 @@ const fetchInvoices = async (filters: {
     .select('*')
     .order('start_date', { ascending: false });
 
-  if (filters.clientId)
-    query = query.eq('client_id', filters.clientId);
-
-  if (filters.startDate)
-    query = query.gte('start_date', filters.startDate);
-
-  if (filters.endDate)
-    query = query.lte('start_date', filters.endDate);
+  if (filters.clientName) query = query.ilike('client_name', `%${filters.clientName}%`);
+  if (filters.startDate) query = query.gte('start_date', filters.startDate);
+  if (filters.endDate) query = query.lte('end_date', filters.endDate);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -62,11 +74,11 @@ const groupInvoicesByClientAndMonth = (invoices: Invoice[]) => {
 const InvoicesPage: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [clientId, setClientId] = useState('');
+  const [clientName, setClientName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [appliedFilters, setAppliedFilters] = useState({
-    clientId: '',
+    clientName: '',
     startDate: '',
     endDate: '',
   });
@@ -88,26 +100,47 @@ const InvoicesPage: React.FC = () => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Faturas</h1>
-        
       </div>
 
       {/* Filtros */}
       <Card className="p-4">
+        {(appliedFilters.clientName || appliedFilters.startDate || appliedFilters.endDate) && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="text-sm text-blue-800">
+              <strong>Filtros ativos:</strong>
+              <div className="mt-1 space-y-1">
+                {appliedFilters.clientName && (
+                  <div>• Cliente: <span className="font-medium">"{appliedFilters.clientName}"</span></div>
+                )}
+                {appliedFilters.startDate && (
+                  <div>• Data início: <span className="font-medium">{formatDateForDisplay(appliedFilters.startDate)}</span></div>
+                )}
+                {appliedFilters.endDate && (
+                  <div>• Data fim: <span className="font-medium">{formatDateForDisplay(appliedFilters.endDate)}</span></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label>Cliente</Label>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              className="w-full border rounded p-2"
-            >
-              <option value="">Todos os clientes</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
+            <Label>Nome do Cliente</Label>
+            <Input
+              type="text"
+              placeholder="Digite o nome do cliente..."
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  // Validar se a data final não é menor que a inicial
+                  if (startDate && endDate && startDate > endDate) {
+                    toast.error('A data final não pode ser menor que a data inicial');
+                    return;
+                  }
+                  setAppliedFilters({ clientName, startDate, endDate });
+                }
+              }}
+            />
           </div>
           <div>
             <Label>Data Início</Label>
@@ -126,16 +159,39 @@ const InvoicesPage: React.FC = () => {
             />
           </div>
         </div>
-        <Button className="mt-4" onClick={() => setAppliedFilters({ clientId, startDate, endDate })}>
-          Aplicar Filtros
-        </Button>
+        <div className="flex gap-2 mt-4">
+          <Button 
+            onClick={() => {
+              // Validar se a data final não é menor que a inicial
+              if (startDate && endDate && startDate > endDate) {
+                toast.error('A data final não pode ser menor que a data inicial');
+                return;
+              }
+              setAppliedFilters({ clientName, startDate, endDate });
+            }}
+            className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
+          >
+            Aplicar Filtros
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              setClientName('');
+              setStartDate('');
+              setEndDate('');
+              setAppliedFilters({ clientName: '', startDate: '', endDate: '' });
+            }}
+          >
+            Resetar Filtros
+          </Button>
+        </div>
       </Card>
 
       {/* Lista Agrupada */}
       <Card className="shadow-md border border-gray-200">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-muted-foreground">
-            Lista de Faturas
+            Lista de Faturas {invoices.length > 0 && `(${invoices.length} encontrada${invoices.length !== 1 ? 's' : ''})`}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -158,42 +214,50 @@ const InvoicesPage: React.FC = () => {
                     <h3 className="text-md font-semibold text-muted-foreground mb-2">{month}</h3>
 
                     <div className="space-y-3">
-                      {invoices.map((invoice) => (
-                        <div
-                          key={invoice.id}
-                          className="flex justify-between items-center border-b pb-2"
-                        >
-                          <div>
-                            <p className="font-semibold">
-                              Fatura {invoice.orders?.map(o => o.order_number).join(', ') ?? 'N/A'}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Total: R$ {
-                                ((invoice.orders?.reduce((sum, o) => sum + (o.sale_value ?? 0), 0) ?? 0) +
-                                 (invoice.extras?.reduce((sum, e) => sum + (e.value ?? 0), 0) ?? 0)).toFixed(2)
-                              } | Tempo: {invoice.total_time?.toFixed(2)}h
-                            </p>
+                      {invoices.map((invoice) => {
+                        const ordersArray = Array.isArray(invoice.orders) ? invoice.orders : [];
+                        const totalValue =
+                          ordersArray.reduce((sum, o) => sum + (o.sale_value ?? 0), 0) +
+                          (Array.isArray(invoice.extras)
+                            ? invoice.extras.reduce((sum, e) => sum + (e.value ?? 0), 0)
+                            : 0);
+
+                        return (
+                          <div
+                            key={invoice.id}
+                            className="flex justify-between items-center border-b pb-2"
+                          >
+                            <div>
+                              <p className="font-semibold">
+                                Fatura {(Array.isArray(invoice.orders) ? invoice.orders : []).map(o => o.order_number).join(', ') || 'N/A'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Total: R$ {totalValue.toFixed(2)} | Tempo: {invoice.total_time?.toFixed(2)}h
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => setSelectedInvoice(invoice)}
+                                className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
+                              >
+                                <FileText size={16} /> Gerar PDF
+                              </Button>
+                              
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() =>
+                                  window.confirm('Tem certeza que deseja excluir esta fatura?') &&
+                                  handleDeleteInvoice(invoice.id, refetch)
+                                }
+                              >
+                                Excluir
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => setSelectedInvoice(invoice)}
-                              className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
-                            >
-                              <FileText size={16} /> Gerar PDF
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() =>
-                                window.confirm('Tem certeza que deseja excluir esta fatura?') &&
-                                handleDeleteInvoice(invoice.id, refetch)
-                              }
-                            >
-                              Excluir
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -202,8 +266,6 @@ const InvoicesPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      
 
       {selectedInvoice && (
         <InvoicePDFGenerator
@@ -215,12 +277,14 @@ const InvoicesPage: React.FC = () => {
             end_date: selectedInvoice.end_date ?? '',
             total_value: selectedInvoice.total_value,
             total_hours: selectedInvoice.total_time || 0,
-            service_orders: selectedInvoice.orders.map((order) => ({
-              order: order.id,
-              order_number: order.order_number,
-              sale_value: order.sale_value,
-              total_hours: order.service_time,
-            })),
+            service_orders: (Array.isArray(selectedInvoice.orders) ? selectedInvoice.orders : []).map(
+              (order) => ({
+                order_number: order.order_number,
+                sale_value: order.sale_value,
+                total_hours: order.total_hours || order.service_time || 0,
+                items: order.items || [],
+              })
+            ),
             extras: selectedInvoice.extras,
           }}
           onClose={() => setSelectedInvoice(null)}

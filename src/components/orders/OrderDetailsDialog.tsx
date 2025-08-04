@@ -1,3 +1,5 @@
+// src/components/orders/OrderDetailsDialog.tsx
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, DollarSign, User, Phone, MapPin, FileText, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { ServiceOrder, BudgetItem } from '@/types/database';
+import { ServiceOrder, BudgetItem, ServiceOrderItem } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import TaskManagement from './TaskManagement';
 import ImageUpload from './ImageUpload';
@@ -14,14 +16,15 @@ import ImageUpload from './ImageUpload';
 interface OrderDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  order: ServiceOrder & { 
+  order: ServiceOrder & {
     assigned_worker?: { name: string };
     created_by_user?: { name: string };
   };
 }
 
-
 const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogProps) => {
+  const { profile } = useAuth();
+
   const getStatusLabel = (status: string) => {
     const statusMap = {
       'received': 'Recebido / Em Análise',
@@ -32,9 +35,9 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
       'ready_for_shipment': 'Pronto para Envio',
       'in_transit': 'Em Trânsito',
       'delivered': 'Entregue',
-      ' invoiced': 'Faturado',
+      'invoiced': 'Faturado',
       'completed': 'Finalizado',
-      'cancelled': 'Cancelado'
+      'cancelled': 'Cancelado',
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
@@ -43,7 +46,7 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
     const urgencyMap = {
       'low': 'Baixa',
       'medium': 'Média',
-      'high': 'Alta'
+      'high': 'Alta',
     };
     return urgencyMap[urgency as keyof typeof urgencyMap] || urgency;
   };
@@ -60,7 +63,7 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
       'delivered': 'bg-green-100 text-green-800',
       'invoiced': 'bg-emerald-100 text-emerald-800',
       'completed': 'bg-green-100 text-green-800',
-      'cancelled': 'bg-red-100 text-red-800'
+      'cancelled': 'bg-red-100 text-red-800',
     };
     return colorMap[status as keyof typeof colorMap] || 'bg-gray-100 text-gray-800';
   };
@@ -69,12 +72,10 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
     const colorMap = {
       'low': 'bg-green-100 text-green-800',
       'medium': 'bg-yellow-100 text-yellow-800',
-      'high': 'bg-red-100 text-red-800'
+      'high': 'bg-red-100 text-red-800',
     };
     return colorMap[urgency as keyof typeof colorMap] || 'bg-gray-100 text-gray-800';
   };
-
-  const {profile} = useAuth();
 
   const { data: budgetItems = [] } = useQuery({
     queryKey: ['budget_items', order.budget_id],
@@ -87,6 +88,19 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
       return data as BudgetItem[];
     },
     enabled: !!order.budget_id,
+  });
+
+  const { data: serviceOrderItems = [] } = useQuery({
+    queryKey: ['service_order_items', order.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_order_items')
+        .select('*')
+        .eq('order_id', order.id);
+      if (error) throw error;
+      return data as ServiceOrderItem[];
+    },
+    enabled: !!order.id,
   });
 
   return (
@@ -166,7 +180,28 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
                   {order.service_description}
                 </p>
               </div>
-              {budgetItems.length > 0 && (
+
+              {/* Mostrar itens da OS se existirem, senão mostrar itens do orçamento */}
+              {serviceOrderItems.length > 0 ? (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mt-4">Itens da Ordem de Serviço</h4>
+                  <div className="mt-2 space-y-3">
+                    {serviceOrderItems.map((item, idx) => (
+                      <div key={idx} className="bg-gray-50 p-3 rounded-md shadow-sm">
+                        <p><strong>Serviço:</strong> {item.service_name}</p>
+                        <p><strong>Descrição:</strong> {item.service_description}</p>
+                        <p><strong>Quantidade:</strong> {item.quantity}</p>
+                        {profile?.role !== 'worker' && profile?.role !== 'manager' && (
+                          <>
+                            <p><strong>Valor Unitário:</strong> R$ {Number(item.unit_price).toFixed(2)}</p>
+                            <p><strong>Total:</strong> R$ {Number(item.sale_value).toFixed(2)}</p>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : budgetItems.length > 0 ? (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mt-4">Itens do Orçamento</h4>
                   <div className="mt-2 space-y-3">
@@ -175,19 +210,17 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
                         <p><strong>Serviço:</strong> {item.service_name}</p>
                         <p><strong>Descrição:</strong> {item.description}</p>
                         <p><strong>Quantidade:</strong> {item.quantity}</p>
-
-                        {profile != null && profile.role !== 'worker' && profile.role !== 'manager' &&  (
-                            <>
-                              <p><strong>Valor Unitário:</strong> R$ {item.unit_price.toFixed(2)}</p>
-                              <p><strong>Total:</strong> R$ {item.total_price.toFixed(2)}</p>
-                            </>
-                          )}
-                        
+                        {profile?.role !== 'worker' && profile?.role !== 'manager' && (
+                          <>
+                            <p><strong>Valor Unitário:</strong> R$ {item.unit_price.toFixed(2)}</p>
+                            <p><strong>Total:</strong> R$ {item.total_price.toFixed(2)}</p>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <Separator />
@@ -219,7 +252,7 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {order.sale_value != null && profile?.role !== 'worker' && profile?.role !== 'manager'  && (
+                {order.sale_value != null && profile?.role !== 'worker' && profile?.role !== 'manager' && (
                   <div>
                     <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
@@ -228,7 +261,7 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
                     <p className="mt-1 text-sm text-gray-900">
                       {Number(order.sale_value).toLocaleString('pt-BR', {
                         style: 'currency',
-                        currency: 'BRL'
+                        currency: 'BRL',
                       })}
                     </p>
                   </div>

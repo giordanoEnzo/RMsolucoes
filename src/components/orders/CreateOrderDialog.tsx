@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useServiceOrders, useWorkers } from '@/hooks/useServiceOrders';
-import { useClients } from '@/hooks/useClients';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CreateOrderDialogProps {
@@ -24,9 +18,7 @@ interface CreateOrderDialogProps {
 
 const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChange }) => {
   const { profile } = useAuth();
-  const { createOrder, isCreating } = useServiceOrders();
-  const { workers } = useWorkers();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -34,30 +26,53 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
     client_contact: '',
     client_address: '',
     service_description: '',
-    sale_value: '',
     urgency: 'medium' as 'low' | 'medium' | 'high',
     assigned_worker_id: '',
     deadline: '',
   });
 
-  useEffect(() => {
-    if (open) {
-      setFormData({
-        client_id: '',
-        client_name: '',
-        client_contact: '',
-        client_address: '',
-        service_description: '',
-        sale_value: '',
-        urgency: 'medium',
-        assigned_worker_id: '',
-        deadline: '',
-      });
-    }
-  }, [open]);
+  const [items, setItems] = useState<any[]>([{
+    service_name: '',
+    service_description: '',
+    quantity: 1,
+    unit_price: 0,
+    sale_value: 0,
+  }]);
 
-  const handleClientChange = (value: string) => {
-    if (value === 'new_client') {
+  const [newServiceData, setNewServiceData] = useState({ name: '', default_price: 0 });
+  const [isCreatingServiceIndex, setIsCreatingServiceIndex] = useState<number | null>(null);
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clients').select('*').order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('services').select('*').order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: workers = [] } = useQuery({
+    queryKey: ['workers'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, name').eq('role', 'worker');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const handleClientSelect = (clientId: string) => {
+    if (clientId === 'new_client') {
+      setIsCreatingClient(true);
       setFormData(prev => ({
         ...prev,
         client_id: '',
@@ -66,169 +81,348 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
         client_address: '',
       }));
     } else {
-      const selectedClient = clients.find(client => client.id === value);
-      if (selectedClient) {
-        setFormData(prev => ({
-          ...prev,
-          client_id: selectedClient.id,
-          client_name: selectedClient.name,
-          client_contact: selectedClient.contact,
-          client_address: selectedClient.address,
-        }));
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        setFormData({
+          ...formData,
+          client_id: clientId,
+          client_name: client.name,
+          client_contact: client.contact,
+          client_address: client.address,
+        });
       }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    let clientId = formData.client_id;
-
-    if (!clientId) {
-      const { data: newClient, error } = await supabase
-        .from('clients')
-        .insert({
-          name: formData.client_name,
-          contact: formData.client_contact,
-          address: formData.client_address,
-        })
-        .select()
-        .single();
-
-      if (error || !newClient?.id) {
-        toast.error('Erro ao criar cliente: ' + error?.message);
-        return;
-      }
-
-      clientId = newClient.id;
-    }
-
-    const orderData = {
-      ...formData,
-      sale_value: formData.sale_value ? parseFloat(formData.sale_value) : undefined,
-      deadline: formData.deadline || undefined,
-      assigned_worker_id: formData.assigned_worker_id || undefined,
-      client_id: clientId,
-      created_by: profile?.id,
+  const handleServiceSelect = (index: number, name: string) => {
+    const service = services.find(s => s.name === name);
+    const newItems = [...items];
+    newItems[index] = {
+      ...newItems[index],
+      service_name: name,
+      unit_price: service?.default_price || 0,
+      sale_value: (service?.default_price || 0) * (newItems[index].quantity || 1),
     };
-
-    createOrder(orderData);
-    onOpenChange(false);
+    setItems(newItems);
   };
 
-  const canSetSaleValue = profile?.role === 'admin';
-  const canAssignWorker = profile?.role !== 'worker';
+  const updateItem = (index: number, field: string, value: any) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    if (field === 'quantity' || field === 'unit_price') {
+      newItems[index].sale_value = (newItems[index].quantity || 0) * (newItems[index].unit_price || 0);
+    }
+    setItems(newItems);
+  };
+
+  const handleCreateService = async (index: number) => {
+  if (!newServiceData.name || newServiceData.default_price <= 0) {
+    toast.error('Preencha o nome e o preço do novo serviço.');
+    return;
+  }
+
+  const { data: newService, error } = await supabase.from('services').insert({
+    name: newServiceData.name,
+    default_price: newServiceData.default_price,
+  }).select().single();
+
+  if (error || !newService) {
+    toast.error('Erro ao criar serviço.');
+    return;
+  }
+
+  // Atualiza o item no formulário com o novo serviço
+  updateItem(index, 'service_name', newService.name);
+  updateItem(index, 'unit_price', newService.default_price);
+  updateItem(index, 'sale_value', newService.default_price * items[index].quantity);
+
+  // Limpa o estado de criação
+  setNewServiceData({ name: '', default_price: 0 });
+  setIsCreatingServiceIndex(null);
+  toast.success('Serviço criado com sucesso!');
+};
+
+
+  const addItem = () => {
+    setItems([
+      ...items,
+      { service_name: '', service_description: '', quantity: 1, unit_price: 0, sale_value: 0 },
+    ]);
+  };
+
+  const getTotalValue = () => {
+    return items.reduce((sum, item) => sum + (item.sale_value || 0), 0);
+  };
+
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      let clientId = orderData.client_id;
+
+      if (!clientId) {
+        const { data: newClient, error } = await supabase.from('clients').insert({
+          name: orderData.client_name,
+          contact: orderData.client_contact,
+          address: orderData.client_address,
+        }).select().single();
+
+        if (error || !newClient) throw error;
+        clientId = newClient.id;
+      }
+
+      const { data: orderNumber, error: numError } = await supabase.rpc('generate_order_number');
+      if (numError) throw numError;
+
+      const { data: order, error: orderError } = await supabase.from('service_orders').insert({
+        order_number: orderNumber,
+        client_id: clientId,
+        client_name: orderData.client_name,
+        client_contact: orderData.client_contact,
+        client_address: orderData.client_address,
+        service_description: orderData.service_description,
+        sale_value: orderData.sale_value,
+        created_by: profile?.id,
+        urgency: orderData.urgency,
+        assigned_worker_id: orderData.assigned_worker_id || null,
+        deadline: orderData.deadline || null,
+        status: 'pendente',
+      }).select().single();
+
+      if (orderError) throw orderError;
+
+      if (orderData.items?.length > 0) {
+        const { error: itemsError } = await supabase.from('service_order_items').insert(
+          orderData.items.map((item: any) => ({
+            order_id: order.id,
+            service_name: item.service_name,
+            service_description: item.service_description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            sale_value: item.sale_value,
+          }))
+        );
+        if (itemsError) throw itemsError;
+      }
+
+      return order;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      toast.success('Ordem criada com sucesso!');
+      onOpenChange(false);
+    },
+    onError: (err: any) => {
+      toast.error('Erro: ' + err.message);
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createOrderMutation.mutate({
+      ...formData,
+      sale_value: getTotalValue(),
+      items,
+    });
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setFormData({
+        client_id: '',
+        client_name: '',
+        client_contact: '',
+        client_address: '',
+        service_description: '',
+        urgency: 'medium',
+        assigned_worker_id: '',
+        deadline: '',
+      });
+      setItems([{
+        service_name: '',
+        service_description: '',
+        quantity: 1,
+        unit_price: 0,
+        sale_value: 0,
+      }]);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+          <DialogTitle>Criar Nova Ordem de Serviço</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="client_select">Cliente</Label>
-            <Select
-              value={formData.client_id || 'new_client'}
-              onValueChange={handleClientChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente ou cadastre novo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new_client">+ Cadastrar novo cliente</SelectItem>
-                {!isLoadingClients &&
-                  clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Cliente e prazo */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Cliente</Label>
+              <Select onValueChange={handleClientSelect}>
+                <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new_client">+ Novo Cliente</SelectItem>
+                  {clients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Prazo de Conclusão</Label>
+              <Input
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="client_name">Nome do Cliente *</Label>
+          {/* Dados do cliente */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Nome</Label>
               <Input
-                id="client_name"
                 value={formData.client_name}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, client_name: e.target.value }))
-                }
-                required
-                disabled={!!formData.client_id}
+                onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client_contact">Contato do Cliente *</Label>
+            <div>
+              <Label>Contato</Label>
               <Input
-                id="client_contact"
                 value={formData.client_contact}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, client_contact: e.target.value }))
-                }
-                required
-                disabled={!!formData.client_id}
+                onChange={(e) => setFormData({ ...formData, client_contact: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="client_address">Endereço do Cliente *</Label>
+          <div>
+            <Label>Endereço</Label>
             <Input
-              id="client_address"
               value={formData.client_address}
-              onChange={e =>
-                setFormData(prev => ({ ...prev, client_address: e.target.value }))
-              }
-              required
-              disabled={!!formData.client_id}
+              onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="service_description">Descrição do Serviço *</Label>
+          <div>
+            <Label>Descrição</Label>
             <Textarea
-              id="service_description"
               value={formData.service_description}
-              onChange={e =>
-                setFormData(prev => ({ ...prev, service_description: e.target.value }))
-              }
-              rows={3}
-              required
+              onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
+              className="max-h-40 overflow-y-auto"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {canSetSaleValue && (
-              <div className="space-y-2">
-                <Label htmlFor="sale_value">Valor de Venda (R$)</Label>
-                <Input
-                  id="sale_value"
-                  type="number"
-                  step="0.01"
-                  value={formData.sale_value}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, sale_value: e.target.value }))
-                  }
-                />
-              </div>
-            )}
+          {/* Itens da ordem de serviço */}
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <Label>Itens de Serviço</Label>
+                        <Button type="button" onClick={addItem} variant="outline" size="sm">
+                          <Plus size={16} /> Adicionar Item
+                        </Button>
+                      </div>
+          
+                      <div className="space-y-4">
+                        {items.map((item, index) => (
+                          <div key={index} className="border rounded-lg p-4 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label>Serviço</Label>
+                                <Select
+                                  onValueChange={(value) => {
+                                    if (value === 'new_service') {
+                                      setIsCreatingServiceIndex(index);
+                                      updateItem(index, 'service_name', '');
+                                    } else {
+                                      handleServiceSelect(index, value);
+                                      setIsCreatingServiceIndex(null);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um serviço" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="new_service">+ Cadastrar novo serviço</SelectItem>
+                                    {services.map((service) => (
+                                      <SelectItem key={service.id} value={service.name}>{service.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+          
+                                {isCreatingServiceIndex === index && (
+                                  <div className="mt-3 space-y-2">
+                                    <Label>Nome do novo serviço</Label>
+                                    <Input
+                                      value={newServiceData.name}
+                                      onChange={(e) => setNewServiceData({ ...newServiceData, name: e.target.value })}
+                                    />
+                                    <Label>Preço</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={newServiceData.default_price}
+                                      onChange={(e) => setNewServiceData({ ...newServiceData, default_price: parseFloat(e.target.value) })}
+                                    />
+                                    <Button type="button" size="sm" onClick={() => handleCreateService(index)}>Salvar Serviço</Button>
+                                  </div>
+                                )}
+                              </div>
+          
+                              <div>
+                                <Label>Descrição</Label>
+                                <Textarea
+                                  value={item.service_description || ''}
+                                  onChange={(e) => updateItem(index, 'service_description', e.target.value)}
+                                  className="max-h-40 overflow-y-auto"
 
-            <div className="space-y-2">
-              <Label htmlFor="urgency">Urgência</Label>
+                                />
+                              </div>
+                            </div>
+          
+                            <div className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
+                              <div>
+                                <Label>Quantidade</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity || 1}
+                                  onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                                />
+                              </div>
+                              <div>
+                                <Label>Preço Unitário</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.unit_price || 0}
+                                  onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                                />
+                              </div>
+                              <div>
+                                <Label>Total</Label>
+                                <Input
+                                  type="number"
+                                  readOnly
+                                  value={item.sale_value || 0}
+                                  className="bg-gray-50"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+          {/* Campos adicionais */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Urgência</Label>
               <Select
                 value={formData.urgency}
-                onValueChange={(value: 'low' | 'medium' | 'high') =>
-                  setFormData(prev => ({ ...prev, urgency: value }))
-                }
+                onValueChange={(v: 'low' | 'medium' | 'high') => setFormData({ ...formData, urgency: v })}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
                   <SelectItem value="medium">Média</SelectItem>
@@ -236,52 +430,34 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {canAssignWorker && (
-              <div className="space-y-2">
-                <Label htmlFor="assigned_worker_id">Operário Atribuído</Label>
-                <Select
-                  value={formData.assigned_worker_id}
-                  onValueChange={value =>
-                    setFormData(prev => ({ ...prev, assigned_worker_id: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um operário" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workers.map(worker => (
-                      <SelectItem key={worker.id} value={worker.id}>
-                        {worker.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="deadline">Prazo de Conclusão</Label>
-              <Input
-                id="deadline"
-                type="date"
-                value={formData.deadline}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, deadline: e.target.value }))
-                }
-              />
+            <div>
+              <Label>Operário Atribuído</Label>
+              <Select
+                value={formData.assigned_worker_id}
+                onValueChange={(v) => setFormData({ ...formData, assigned_worker_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione um operário" /></SelectTrigger>
+                <SelectContent>
+                  {workers.map(w => (
+                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isCreating}>
-              {isCreating ? 'Criando...' : 'Criar Ordem'}
-            </Button>
+          <div className="flex justify-between items-center pt-4 border-t">
+            <span className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}> 
+              Total: R$ {getTotalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={createOrderMutation.isPending}>
+                {createOrderMutation.isPending ? 'Criando...' : 'Criar Ordem'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface BudgetFiltersProps {
   filters: {
@@ -53,10 +54,21 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
 
   const handleDateToChange = (date: Date | undefined) => {
     setDateTo(date);
-    onFiltersChange({
-      ...filters,
-      dateTo: date ? date.toISOString().split('T')[0] : '',
-    });
+    
+    if (date) {
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      onFiltersChange({
+        ...filters,
+        dateTo: nextDay.toISOString(),
+      });
+    } else{
+      onFiltersChange({
+        ...filters,
+        dateTo: '',
+      });
+    }
   };
 
   const handleStatusChange = (value: string) => {
@@ -64,6 +76,12 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
       ...filters,
       status: value === 'all' ? '' : value,
     });
+  };
+
+  const handleClearFilters = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    onClearFilters();
   };
 
   return (
@@ -96,7 +114,7 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="aprovado">Aprovado</SelectItem>
+                <SelectItem value="approved">Aprovado</SelectItem>
                 <SelectItem value="reprovado">Reprovado</SelectItem>
                 <SelectItem value="sent">Enviado</SelectItem>
                 
@@ -126,7 +144,7 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateFrom
-                      ? format(dateFrom, 'dd/MM/yyyy')
+                      ? format(dateFrom, 'dd/MM/yyyy', {locale: ptBR})
                       : 'Selecionar'}
                   </Button>
                 </PopoverTrigger>
@@ -136,6 +154,7 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
                     selected={dateFrom}
                     onSelect={handleDateFromChange}
                     initialFocus
+                    locale={ptBR}
                   />
                 </PopoverContent>
               </Popover>
@@ -151,7 +170,7 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateTo
-                      ? format(dateTo, 'dd/MM/yyyy')
+                      ? format(dateTo, 'dd/MM/yyyy', {locale: ptBR})
                       : 'Selecionar'}
                   </Button>
                 </PopoverTrigger>
@@ -161,6 +180,7 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
                     selected={dateTo}
                     onSelect={handleDateToChange}
                     initialFocus
+                    locale={ptBR}
                   />
                 </PopoverContent>
               </Popover>
@@ -169,7 +189,7 @@ export const BudgetFilters: React.FC<BudgetFiltersProps> = ({
         </div>
 
         <div className="flex justify-end">
-          <Button variant="outline" onClick={onClearFilters}>
+          <Button variant="outline" onClick={handleClearFilters}>
             Limpar Filtros
           </Button>
         </div>

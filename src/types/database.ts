@@ -8,6 +8,7 @@ export interface Profile {
 }
 
 export interface Client {
+  neighborhood: string;
   id: string;
   name: string;
   contact: string;
@@ -197,6 +198,16 @@ interface Invoice {
     description: string;
     value: number;
   }[];
+}
+
+export interface ServiceOrderItem {
+  id: string;
+  service_order_id: string;
+  service_name: string;
+  service_description: string;
+  quantity: number;
+  unit_price: number;
+  sale_value: number;
 }
 
 

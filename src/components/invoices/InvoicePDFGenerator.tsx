@@ -1,11 +1,11 @@
-// src/components/invoices/InvoicePDFGenerator.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Phone } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getInvoiceItems } from '@/utils/invoiceUtils';
 
 const logopath = '/logonum.png';
 const assinaturaPath = '/AssinaturaMarcioOficial.png';
@@ -15,10 +15,24 @@ interface ExtraItem {
   value?: number;
 }
 
+interface ServiceOrderItem {
+  id: string;
+  service_name: string;
+  service_description: string;
+  quantity: number;
+  unit_price: number;
+  sale_value: number;
+  created_at: string;
+  order_id: string | null;
+  service_order_id: string;
+}
+
+
 interface ServiceOrder {
   order_number: string;
   service_description?: string;
   sale_value?: number;
+  items?: ServiceOrderItem[];
 }
 
 interface Invoice {
@@ -54,10 +68,39 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
 };
 
 export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
+  const [invoiceItems, setInvoiceItems] = React.useState<any[]>([]);
+  const [itemsLoading, setItemsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadItems = async () => {
+      setItemsLoading(true);
+      try {
+        const items = await getInvoiceItems(invoice.id);
+        setInvoiceItems(items);
+      } catch (error) {
+        console.error('Erro ao carregar itens:', error);
+      } finally {
+        setItemsLoading(false);
+      }
+    };
+
+    loadItems();
+  }, [invoice.id]);
+
   const generatePDF = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     let y = 15;
+
+    // Buscar itens da fatura se ainda não foram carregados
+    let itemsToUse = invoiceItems;
+    if (itemsToUse.length === 0) {
+      try {
+        itemsToUse = await getInvoiceItems(invoice.id);
+      } catch (error) {
+        console.error('Erro ao buscar itens para PDF:', error);
+      }
+    }
 
     try {
       const logoBase64 = await loadImageAsBase64(logopath);
@@ -102,15 +145,37 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     doc.text(`Período: ${invoice.start_date} a ${invoice.end_date}`, 20, y);
     y += 10;
 
-    // Montar itens da tabela para PDF, corrigindo fallback na descrição
-    const items = [
-      ...invoice.service_orders.map((os) => [
-        os.service_description || `Serviço sem descrição`,
-        'und.',
-        `R$ ${(os.sale_value ?? 0).toFixed(2)}`,
-        '1',
-        `R$ ${(os.sale_value ?? 0).toFixed(2)}`
-      ]),
+    // Montar itens da tabela para PDF
+    const items: any[] = [];
+
+    // Primeiro, adicionar os itens específicos se existirem
+    if (itemsToUse.length > 0) {
+      itemsToUse.forEach((item) => {
+        items.push([
+          `${item.service_name || 'Serviço'}${item.service_description ? ` - ${item.service_description}` : ''}`,
+          'und.',
+          `R$ ${Number(item.unit_price ?? 0).toFixed(2)}`,
+          `${item.quantity ?? 1}`,
+          `R$ ${Number(item.sale_value ?? 0).toFixed(2)}`
+        ]);
+      });
+    }
+
+    // Se não houver itens específicos, usar os dados das ordens de serviço
+    if (items.length === 0) {
+      invoice.service_orders.forEach((os) => {
+        items.push([
+          os.service_description || "Serviço executado",
+          'und.',
+          `R$ ${(os.sale_value ?? 0).toFixed(2)}`,
+          '1',
+          `R$ ${(os.sale_value ?? 0).toFixed(2)}`
+        ]);
+      });
+    }
+
+    // Adicionar extras se existirem
+    items.push(
       ...(invoice.extras ?? []).map((extra) => [
         extra.description || 'Extra sem descrição',
         'und.',
@@ -118,7 +183,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
         '1',
         `R$ ${(extra.value ?? 0).toFixed(2)}`
       ])
-    ];
+    );
 
     autoTable(doc, {
       startY: y,
@@ -127,20 +192,20 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
       styles: { fontSize: 10 },
     });
 
-    y = doc.lastAutoTable.finalY + 10;
+    y = (doc as any).lastAutoTable.finalY + 10;
 
     const total = items.reduce((acc, item) => {
-  const priceStr = item[4]; // Ex: "R$ 10.00"
-  const numericValue = parseFloat(priceStr.replace('R$', '').replace(',', '.').trim());
-  return acc + (isNaN(numericValue) ? 0 : numericValue);
-}, 0);
+      const priceStr = item[4]; // Ex: "R$ 10.00"
+      const numericValue = parseFloat(priceStr.replace('R$', '').replace(',', '.').trim());
+      return acc + (isNaN(numericValue) ? 0 : numericValue);
+    }, 0);
 
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(`TOTAL: R$ ${total.toFixed(2)}`, pageWidth - 20, y, { align: 'right' });
     y += 10;
 
-    // Pagamento e dados bancários - permanece igual
+    // Pagamento e dados bancários
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.text('Pagamento', 20, y);
@@ -230,7 +295,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
       const url = data?.publicUrl;
       const msg = encodeURIComponent(`Olá ${invoice.client_name}, segue sua fatura: ${url}`);
 
-      // Note: aqui você usa o telefone? invoice.client_name.replace... talvez precise corrigir para telefone real
+      // Note: aqui você precisa ajustar para usar o telefone real do cliente
       window.open(`https://wa.me/55${invoice.client_name.replace(/\D/g, '')}?text=${msg}`, '_blank');
       toast.success('Fatura enviada via WhatsApp!');
     } catch (error) {
@@ -250,6 +315,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
           <p><strong>Cliente:</strong> {invoice.client_name}</p>
           <p><strong>Período:</strong> {invoice.start_date} a {invoice.end_date}</p>
           <p><strong>OSs incluídas:</strong> {invoice.service_orders.length}</p>
+          <p><strong>Itens encontrados:</strong> {itemsLoading ? 'Carregando...' : invoiceItems.length}</p>
           <p>
             <strong>Total:</strong> R$ {(
               (invoice.service_orders?.reduce((sum, o) => sum + (o.sale_value ?? 0), 0) ?? 0) +
