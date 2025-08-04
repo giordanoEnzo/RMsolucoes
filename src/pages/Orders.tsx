@@ -33,13 +33,10 @@ const Orders = () => {
   const getFilteredOrders = () => {
     let filteredOrders = orders;
 
-    // Filtrar por perfil do usuário (apenas para workers)
+    // Filtrar apenas ordens que não estão para faturar (para workers)
     if (profile?.role === 'worker') {
-  filteredOrders = filteredOrders.filter(order =>
-    (order.assigned_worker_id === profile.id || order.created_by === profile.id) &&
-    order.status !== 'to_invoice'
-  );
-}
+      filteredOrders = filteredOrders.filter(order => order.status !== 'to_invoice');
+    }
 
 
     // Filtrar por termo de busca
@@ -61,8 +58,8 @@ const Orders = () => {
       filteredOrders = filteredOrders.filter(order => order.urgency === priorityFilter);
     }
 
-    // Filtrar por colaborador (apenas para admin e manager)
-    if (workerFilter !== 'all' && ['admin', 'manager'].includes(profile?.role || '')) {
+    // Filtrar por colaborador (para admin, manager e worker)
+    if (workerFilter !== 'all' && ['admin', 'manager', 'worker'].includes(profile?.role || '')) {
       if (workerFilter === 'unassigned') {
         filteredOrders = filteredOrders.filter(order => !order.assigned_worker_id);
       } else {
@@ -112,13 +109,10 @@ const Orders = () => {
       <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-start'}`}>
         <div>
           <h1 className={`font-bold text-slate-800 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-            {profile?.role === 'worker' ? 'Minhas Ordens de Serviço' : 'Ordens de Serviço'}
+            Ordens de Serviço
           </h1>
           <p className={`text-slate-600 mt-1 ${isMobile ? 'text-sm' : ''}`}>
-            {profile?.role === 'worker' 
-              ? 'Gerencie suas ordens de serviço atribuídas'
-              : 'Gerencie todas as ordens de serviço do sistema'
-            }
+            Gerencie todas as ordens de serviço do sistema
           </p>
         </div>
         {canCreateOrder && canManageOrders && (
