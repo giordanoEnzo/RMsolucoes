@@ -46,7 +46,7 @@ export const Contact = () => {
                 <Mail className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Email</h3>
-              <p className="text-emerald-400 text-lg font-medium">contato@rmsolucoes.com.br</p>
+              <p className="text-emerald-400 text-lg font-medium">rmsoldas@hotmail.com</p>
             </CardContent>
           </Card>
         </div>
@@ -68,8 +68,8 @@ export const Contact = () => {
                   <Clock className="w-6 h-6 text-emerald-400 mt-1 flex-shrink-0" />
                   <div>
                     <p className="font-semibold">Horário de Funcionamento</p>
-                    <p className="text-gray-300">Segunda a Sexta: 8h às 18h</p>
-                    <p className="text-gray-300">Sábado: 8h às 12h</p>
+                    <p className="text-gray-300">Segunda a Sexta: 8h às 17h</p>
+                    <p className="text-gray-300">Sábado: Fechado</p>
                   </div>
                 </div>
               </div>
@@ -104,14 +104,18 @@ export const Contact = () => {
         <div className="text-center mt-12">
           <p className="text-gray-300 mb-4">Siga-nos nas redes sociais</p>
           <div className="flex justify-center space-x-6">
-            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
-              <Facebook className="w-6 h-6 text-white" />
-            </div>
-            <div className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors cursor-pointer">
+            
+            <a
+              href="https://www.instagram.com/rmsolda/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors"
+            >
               <Instagram className="w-6 h-6 text-white" />
-            </div>
+            </a>
           </div>
         </div>
+
       </div>
     </section>
   );

@@ -61,8 +61,14 @@ export const Navigation = () => {
 
             {/* Social Icons */}
             <div className="flex items-center space-x-3">
-              <Facebook className="w-5 h-5 text-gray-600 hover:text-blue-600 cursor-pointer" />
-              <Instagram className="w-5 h-5 text-gray-600 hover:text-pink-600 cursor-pointer" />
+              <a
+              href="https://www.instagram.com/rmsolda/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-3"
+            >
+              <Instagram className="flex items-center space-x-3" />
+            </a>
             </div>
           </div>
 

@@ -102,6 +102,11 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
       }
     }
 
+    // Verificar se temos itens para processar
+    if (!itemsToUse || itemsToUse.length === 0) {
+      console.warn('Nenhum item encontrado na fatura');
+    }
+
     try {
       const logoBase64 = await loadImageAsBase64(logopath);
       doc.addImage(logoBase64, 'PNG', 20, 10, 30, 30);
@@ -148,24 +153,32 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     // Montar itens da tabela para PDF
     const items: any[] = [];
 
-    // Primeiro, adicionar os itens específicos se existirem
-    if (itemsToUse.length > 0) {
-      itemsToUse.forEach((item) => {
-        items.push([
-          `${item.service_name || 'Serviço'}${item.service_description ? ` - ${item.service_description}` : ''}`,
-          'und.',
-          `R$ ${Number(item.unit_price ?? 0).toFixed(2)}`,
-          `${item.quantity ?? 1}`,
-          `R$ ${Number(item.sale_value ?? 0).toFixed(2)}`
-        ]);
-      });
-    }
+ 
+              
+        itemsToUse.forEach((item) => {
+          const serviceName = item.service_name || 'Serviço';
+          const serviceDescription = item.service_description || '';
+        
+          const descriptionText = serviceDescription
+            ? `\n-----------------------------------------------------------------------\n${serviceDescription}`
+            : '';
+        
+          items.push([
+            `${serviceName}${descriptionText}`,
+            'und.',
+            `R$ ${Number(item.unit_price ?? 0).toFixed(2)}`,
+            `${item.quantity ?? 1}`,
+            `R$ ${Number(item.sale_value ?? 0).toFixed(2)}`
+          ]);
+        });
+        
 
     // Se não houver itens específicos, usar os dados das ordens de serviço
     if (items.length === 0) {
       invoice.service_orders.forEach((os) => {
+        const serviceDescription = os.service_description || "Serviço executado";
         items.push([
-          os.service_description || "Serviço executado",
+          serviceDescription,
           'und.',
           `R$ ${(os.sale_value ?? 0).toFixed(2)}`,
           '1',
@@ -189,7 +202,26 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
       startY: y,
       head: [['Descrição', 'Unidade', 'Preço unitário', 'Qtd.', 'Preço']],
       body: items,
-      styles: { fontSize: 10 },
+      styles: { fontSize: 10, cellPadding: 4 },
+      columnStyles: {
+        0: { cellWidth: 95 }, // Coluna de descrição mais larga
+      },
+      didParseCell: function (data) {
+        if (data.section === 'body' && data.column.index === 0) {
+          // Garantir que o texto seja processado corretamente
+          const cellText = data.cell.text[0];
+          
+          if (typeof cellText === 'string' && cellText.includes('\n')) {
+            const parts = cellText.split('\n');
+            data.cell.text = parts;
+          }
+        }
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
     });
 
     y = (doc as any).lastAutoTable.finalY + 10;

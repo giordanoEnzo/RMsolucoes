@@ -34,7 +34,7 @@ const Sidebar = () => {
     if (profile?.role === 'admin') {
       baseItems.push(
         { path: '/clients', icon: UserCircle, label: 'Clientes' },
-        { path: '/services', icon: Package, label: 'Serviços' },
+        //{ path: '/services', icon: Package, label: 'Serviços' },
         { path: '/budgets', icon: Calculator, label: 'Orçamentos' },
         { path: '/inventory', icon: Package, label: 'Estoque' },
         { path: '/employees', icon: Users, label: 'Funcionários' },
@@ -48,7 +48,7 @@ const Sidebar = () => {
     if ( profile?.role === 'manager') {
       baseItems.push(
         { path: '/clients', icon: UserCircle, label: 'Clientes' },
-        { path: '/services', icon: Package, label: 'Serviços' },
+        //{ path: '/services', icon: Package, label: 'Serviços' },
         { path: '/inventory', icon: Package, label: 'Estoque' },
         { path: '/employees', icon: Users, label: 'Funcionários' },
         { path: '/reports', icon: BarChart3, label: 'Relatórios' },

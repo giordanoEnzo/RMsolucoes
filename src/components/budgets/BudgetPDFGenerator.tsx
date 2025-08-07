@@ -77,20 +77,73 @@ export const BudgetPDFGenerator: React.FC<BudgetPDFGeneratorProps> = ({ budget, 
     doc.text(`Endereço: ${budget.client_address}`, 20, y);
     y += 10;
 
-    const items = budget.budget_items.map((item) => [
-      item.service_name,
-      'und.',
-      `R$ ${item.unit_price.toFixed(2)}`,
-      item.quantity.toString(),
-      `R$ ${item.total_price.toFixed(2)}`
-    ]);
+    // Verificar se budget_items existe e tem dados
+    if (!budget.budget_items || budget.budget_items.length === 0) {
+      console.warn('Nenhum item encontrado no orçamento');
+      return doc;
+    }
+
+    const items = budget.budget_items.map((item) => {
+      // Garantir que temos os dados corretos
+      const serviceName = item.service_name || '';
+      const description = item.description || '';
+      
+      // Criar o texto da descrição com quebras de linha
+      const descriptionText = description ? `\n${description}` : '';
+      
+      return [
+        `${serviceName}${descriptionText}`,
+        'und.',
+        `R$ ${item.unit_price.toFixed(2)}`,
+        item.quantity.toString(),
+        `R$ ${item.total_price.toFixed(2)}`
+      ];
+    });
+    
+
+    const rows = budget.budget_items.map((item) => {
+      const serviceName = item.service_name || '';
+      const description = item.description || '';
+    
+      const fullDescription = description
+        ? `${serviceName}\n--------------------------------------------------------------\n${description}`
+        : serviceName;
+    
+      return [
+        fullDescription,
+        'und.',
+        `R$ ${item.unit_price.toFixed(2)}`,
+        item.quantity.toString(),
+        `R$ ${item.total_price.toFixed(2)}`
+      ];
+    });
+    
+    y += 10;
 
     autoTable(doc, {
       startY: y,
       head: [['Descrição', 'Unidade', 'Preço unitário', 'Qtd.', 'Preço']],
-      body: items,
-      styles: { fontSize: 10 },
+      body: rows,
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        valign: 'top',
+      },
+      columnStyles: {
+        0: { cellWidth: 80 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 30 },
+      },
+      headStyles: {
+        fillColor: [0, 102, 204],
+        textColor: 255,
+        halign: 'center',
+      },
     });
+    
+    
 
     y = doc.lastAutoTable.finalY + 10;
 

@@ -42,6 +42,9 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
   const [newServiceData, setNewServiceData] = useState({ name: '', default_price: 0 });
   const [isCreatingServiceIndex, setIsCreatingServiceIndex] = useState<number | null>(null);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [editServiceIndex, setEditServiceIndex] = useState<number | null>(null);
+  const [editServiceData, setEditServiceData] = useState<{ id: string; name: string; default_price: number } | null>(null);
+
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -116,31 +119,31 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
   };
 
   const handleCreateService = async (index: number) => {
-  if (!newServiceData.name || newServiceData.default_price <= 0) {
-    toast.error('Preencha o nome e o preço do novo serviço.');
-    return;
-  }
+    if (!newServiceData.name || newServiceData.default_price <= 0) {
+      toast.error('Preencha o nome e o preço do novo serviço.');
+      return;
+    }
 
-  const { data: newService, error } = await supabase.from('services').insert({
-    name: newServiceData.name,
-    default_price: newServiceData.default_price,
-  }).select().single();
+    const { data: newService, error } = await supabase.from('services').insert({
+      name: newServiceData.name,
+      default_price: newServiceData.default_price,
+    }).select().single();
 
-  if (error || !newService) {
-    toast.error('Erro ao criar serviço.');
-    return;
-  }
+    if (error || !newService) {
+      toast.error('Erro ao criar serviço.');
+      return;
+    }
 
-  // Atualiza o item no formulário com o novo serviço
-  updateItem(index, 'service_name', newService.name);
-  updateItem(index, 'unit_price', newService.default_price);
-  updateItem(index, 'sale_value', newService.default_price * items[index].quantity);
+    // Atualiza o item no formulário com o novo serviço
+    updateItem(index, 'service_name', newService.name);
+    updateItem(index, 'unit_price', newService.default_price);
+    updateItem(index, 'sale_value', newService.default_price * items[index].quantity);
 
-  // Limpa o estado de criação
-  setNewServiceData({ name: '', default_price: 0 });
-  setIsCreatingServiceIndex(null);
-  toast.success('Serviço criado com sucesso!');
-};
+    // Limpa o estado de criação
+    setNewServiceData({ name: '', default_price: 0 });
+    setIsCreatingServiceIndex(null);
+    toast.success('Serviço criado com sucesso!');
+  };
 
 
   const addItem = () => {
@@ -172,6 +175,9 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
       const { data: orderNumber, error: numError } = await supabase.rpc('generate_order_number');
       if (numError) throw numError;
 
+      
+
+      
       const { data: order, error: orderError } = await supabase.from('service_orders').insert({
         order_number: orderNumber,
         client_id: clientId,
@@ -278,6 +284,8 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
             </div>
           </div>
 
+
+
           {/* Dados do cliente */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -314,105 +322,169 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           </div>
 
           {/* Itens da ordem de serviço */}
-                    <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <Label>Itens de Serviço</Label>
-                        <Button type="button" onClick={addItem} variant="outline" size="sm">
-                          <Plus size={16} /> Adicionar Item
-                        </Button>
-                      </div>
-          
-                      <div className="space-y-4">
-                        {items.map((item, index) => (
-                          <div key={index} className="border rounded-lg p-4 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label>Serviço</Label>
-                                <Select
-                                  onValueChange={(value) => {
-                                    if (value === 'new_service') {
-                                      setIsCreatingServiceIndex(index);
-                                      updateItem(index, 'service_name', '');
-                                    } else {
-                                      handleServiceSelect(index, value);
-                                      setIsCreatingServiceIndex(null);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione um serviço" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="new_service">+ Cadastrar novo serviço</SelectItem>
-                                    {services.map((service) => (
-                                      <SelectItem key={service.id} value={service.name}>{service.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-          
-                                {isCreatingServiceIndex === index && (
-                                  <div className="mt-3 space-y-2">
-                                    <Label>Nome do novo serviço</Label>
-                                    <Input
-                                      value={newServiceData.name}
-                                      onChange={(e) => setNewServiceData({ ...newServiceData, name: e.target.value })}
-                                    />
-                                    <Label>Preço</Label>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      value={newServiceData.default_price}
-                                      onChange={(e) => setNewServiceData({ ...newServiceData, default_price: parseFloat(e.target.value) })}
-                                    />
-                                    <Button type="button" size="sm" onClick={() => handleCreateService(index)}>Salvar Serviço</Button>
-                                  </div>
-                                )}
-                              </div>
-          
-                              <div>
-                                <Label>Descrição</Label>
-                                <Textarea
-                                  value={item.service_description || ''}
-                                  onChange={(e) => updateItem(index, 'service_description', e.target.value)}
-                                  className="max-h-40 overflow-y-auto"
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <Label>Itens de Serviço</Label>
+              <Button type="button" onClick={addItem} variant="outline" size="sm">
+                <Plus size={16} /> Adicionar Item
+              </Button>
+            </div>
 
-                                />
-                              </div>
+
+            <div className="space-y-4">
+              {items.map((item, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Serviço</Label>
+                      <Textarea
+                        placeholder="Descreva o serviço"
+                        value={item.service_name}
+                        onChange={(e) => updateItem(index, 'service_name', e.target.value)}
+                        className="min-h-[80px]"
+                      />
+
+
+                      {editServiceData && (
+                        <Dialog open={editServiceIndex !== null} onOpenChange={() => setEditServiceIndex(null)}>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Serviço</DialogTitle>
+                            </DialogHeader>
+
+
+                            <div className="space-y-2">
+                              <Label htmlFor="service-name">Nome</Label>
+                              <textarea
+                                id="service-name"
+                                value={editServiceData.name}
+                                onChange={(e) =>
+                                  setEditServiceData({ ...editServiceData, name: e.target.value })
+                                }
+                                placeholder="Digite o nome do serviço"
+                                className="w-full min-h-[80px] resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                              />
                             </div>
-          
-                            <div className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
-                              <div>
-                                <Label>Quantidade</Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={item.quantity || 1}
-                                  onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
-                                />
-                              </div>
-                              <div>
-                                <Label>Preço Unitário</Label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={item.unit_price || 0}
-                                  onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
-                                />
-                              </div>
-                              <div>
-                                <Label>Total</Label>
-                                <Input
-                                  type="number"
-                                  readOnly
-                                  value={item.sale_value || 0}
-                                  className="bg-gray-50"
-                                />
-                              </div>
+
+                            <div className="flex justify-end">
+                              <Button
+                                onClick={async () => {
+                                  const { error } = await supabase
+                                    .from('services')
+                                    .update({
+                                      name: editServiceData.name,
+                                      default_price: editServiceData.default_price,
+                                    })
+                                    .eq('id', editServiceData.id);
+
+                                  if (error) {
+                                    toast.error('Erro ao atualizar serviço.');
+                                    return;
+                                  }
+
+                                  const updatedServices = services.map((s) =>
+                                    s.id === editServiceData.id ? { ...s, ...editServiceData } : s
+                                  );
+
+                                  queryClient.setQueryData(['services'], updatedServices);
+
+                                  if (editServiceIndex !== null) {
+                                    updateItem(editServiceIndex, 'unit_price', editServiceData.default_price);
+                                    updateItem(editServiceIndex, 'sale_value', editServiceData.default_price * items[editServiceIndex].quantity);
+                                  }
+
+                                  toast.success('Serviço atualizado com sucesso!');
+                                  setEditServiceIndex(null);
+                                }}
+                              >
+                                Salvar
+                              </Button>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => {
+                          const selected = services.find(s => s.name === item.service_name);
+                          if (selected) {
+                            setEditServiceIndex(index);
+                            setEditServiceData(selected);
+                          }
+                        }}
+                      >
+                        Editar Serviço
+                      </Button>
+
+
+                      {isCreatingServiceIndex === index && (
+                        <div className="mt-3 space-y-2">
+                          <Label>Nome do novo serviço</Label>
+                          <Textarea
+                            value={newServiceData.name}
+                            onChange={(e) => setNewServiceData({ ...newServiceData, name: e.target.value })}
+                          />
+                          <Label>Preço</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newServiceData.default_price}
+                            onChange={(e) => setNewServiceData({ ...newServiceData, default_price: parseFloat(e.target.value) })}
+                          />
+                          <Button type="button" size="sm" onClick={() => handleCreateService(index)}>Salvar Serviço</Button>
+                        </div>
+                      )}
                     </div>
+
+                    <div>
+                      <Label>Descrição</Label>
+                      <Textarea
+                        value={item.service_description || ''}
+                        onChange={(e) => updateItem(index, 'service_description', e.target.value)}
+                        className="max-h-40 overflow-y-auto"
+
+                      />
+                    </div>
+                  </div>
+
+                  <div className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
+                    <div>
+                      <Label>Quantidade</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity || 1}
+                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Preço Unitário</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={item.unit_price || 0}
+                        onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Total</Label>
+                      <Input
+                        type="number"
+                        readOnly
+                        value={item.sale_value || 0}
+                        className="bg-gray-50"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Campos adicionais */}
           <div className="grid grid-cols-2 gap-4">
@@ -447,7 +519,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           </div>
 
           <div className="flex justify-between items-center pt-4 border-t">
-            <span className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}> 
+            <span className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
               Total: R$ {getTotalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
             <div className="flex gap-2">

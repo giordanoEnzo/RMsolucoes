@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Client, Service, BudgetItem } from '@/types/database';
 
@@ -40,6 +40,10 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
 
   const [isCreatingServiceIndex, setIsCreatingServiceIndex] = useState<number | null>(null);
   const [newServiceData, setNewServiceData] = useState({ name: '', default_price: 0 });
+
+  // Estados para edição do serviço
+  const [editServiceIndex, setEditServiceIndex] = useState<number | null>(null);
+  const [editServiceData, setEditServiceData] = useState<{ id: string; name: string; default_price: number } | null>(null);
 
   const [isCreatingClient, setIsCreatingClient] = useState(false);
 
@@ -254,7 +258,7 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
 
       setIsCreatingClient(false);
       toast.success('Cliente criado com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Erro ao criar cliente: ' + error.message);
     }
   };
@@ -273,190 +277,234 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
     if (!open) resetForm();
   }, [open]);
 
-  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Criar Novo Orçamento</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Orçamento</DialogTitle>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Cliente e validade */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Cliente</Label>
-              <Select onValueChange={handleClientSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new_client">+ Cadastrar novo cliente</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Cliente e validade */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente</Label>
+                <Select onValueChange={handleClientSelect} value={formData.client_id || undefined}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new_client">+ Cadastrar novo cliente</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Válido até</Label>
+                <Input
+                  type="date"
+                  value={formData.valid_until}
+                  onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                />
+              </div>
             </div>
+
+            {/* Dados do cliente */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Nome</Label>
+                <Input
+                  value={formData.client_name}
+                  onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Contato</Label>
+                <Input
+                  value={formData.client_contact}
+                  onChange={(e) => setFormData({ ...formData, client_contact: e.target.value })}
+                />
+              </div>
+            </div>
+
             <div>
-              <Label>Válido até</Label>
+              <Label>Endereço</Label>
               <Input
-                type="date"
-                value={formData.valid_until}
-                onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                value={formData.client_address}
+                onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
               />
             </div>
-          </div>
 
-          {/* Dados do cliente */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Nome</Label>
-              <Input
-                value={formData.client_name}
-                onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+              <Label>Descrição</Label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
+
+            {/* Itens do orçamento */}
             <div>
-              <Label>Contato</Label>
-              <Input
-                value={formData.client_contact}
-                onChange={(e) => setFormData({ ...formData, client_contact: e.target.value })}
-              />
-            </div>
-          </div>
+              <div className="flex justify-between items-center mb-4">
+                <Label>Itens do Orçamento</Label>
+                <Button type="button" onClick={addItem} variant="outline" size="sm">
+                  <Plus size={16} /> Adicionar Item
+                </Button>
+              </div>
 
-          <div>
-            <Label>Endereço</Label>
-            <Input
-              value={formData.client_address}
-              onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
-            />
-          </div>
+              <div className="space-y-4">
+                {items.map((item, index) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Serviço</Label>
+                        <Textarea
+                          placeholder="Descreva o serviço"
+                          value={item.service_name}
+                          onChange={(e) => updateItem(index, 'service_name', e.target.value)}
+                          className="min-h-[80px]"
+                        />
 
-          <div>
-            <Label>Descrição</Label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
 
-          {/* Itens do orçamento */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <Label>Itens do Orçamento</Label>
-              <Button type="button" onClick={addItem} variant="outline" size="sm">
-                <Plus size={16} /> Adicionar Item
-              </Button>
-            </div>
+                      </div>
 
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Serviço</Label>
-                      <Select
-                        onValueChange={(value) => {
-                          if (value === 'new_service') {
-                            setIsCreatingServiceIndex(index);
-                            updateItem(index, 'service_name', '');
-                          } else {
-                            handleServiceSelect(index, value);
-                            setIsCreatingServiceIndex(null);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um serviço" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="new_service">+ Cadastrar novo serviço</SelectItem>
-                          {services.map((service) => (
-                            <SelectItem key={service.id} value={service.name}>{service.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div>
+                        <Label>Descrição</Label>
+                        <Textarea
+                          value={item.description || ''}
+                          onChange={(e) => updateItem(index, 'description', e.target.value)}
+                        />
+                      </div>
+                    </div>
 
-                      {isCreatingServiceIndex === index && (
-                        <div className="mt-3 space-y-2">
-                          <Label>Nome do novo serviço</Label>
-                          <Input
-                            value={newServiceData.name}
-                            onChange={(e) => setNewServiceData({ ...newServiceData, name: e.target.value })}
-                          />
-                          <Label>Preço</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={newServiceData.default_price}
-                            onChange={(e) => setNewServiceData({ ...newServiceData, default_price: parseFloat(e.target.value) })}
-                          />
-                          <Button type="button" size="sm" onClick={() => handleCreateService(index)}>Salvar Serviço</Button>
-                        </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label>Quantidade</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity || 1}
+                          onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div>
+                        <Label>Preço Unitário</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.unit_price || 0}
+                          onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                        />
+                      </div>
+                      <div>
+                        <Label>Total</Label>
+                        <Input
+                          type="number"
+                          readOnly
+                          value={item.total_price || 0}
+                          className="bg-gray-50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      {items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeItem(index)}
+                        >
+                          Remover Item
+                        </Button>
                       )}
                     </div>
-
-                    <div>
-                      <Label>Descrição</Label>
-                      <Input
-                        value={item.description || ''}
-                        onChange={(e) => updateItem(index, 'description', e.target.value)}
-                      />
-                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label>Quantidade</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity || 1}
-                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label>Preço Unitário</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.unit_price || 0}
-                        onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label>Total</Label>
-                      <Input
-                        type="number"
-                        readOnly
-                        value={item.total_price || 0}
-                        className="bg-gray-50"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex justify-between items-center pt-4 border-t">
+              <span className="text-lg font-bold">
+                Total: R$ {getTotalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={createBudgetMutation.isPending}>
+                  {createBudgetMutation.isPending ? 'Criando...' : 'Criar Orçamento'}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar serviço */}
+      <Dialog open={editServiceIndex !== null} onOpenChange={() => setEditServiceIndex(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Serviço</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Label htmlFor="service-name">Nome</Label>
+            <Textarea
+              id="service-name"
+              value={editServiceData?.name || ''}
+              onChange={(e) => setEditServiceData(prev => prev ? { ...prev, name: e.target.value } : null)}
+              placeholder="Digite o nome do serviço"
+              className="w-full min-h-[80px] resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+
+
+
+            <div className="flex justify-end pt-4">
+              <Button
+
+
+
+                onClick={async () => {
+
+                  const { error } = await supabase
+                    .from('services')
+                    .update({
+                      name: editServiceData.name,
+                      default_price: editServiceData.default_price,
+                    })
+                    .eq('id', editServiceData.id);
+
+                  if (error) {
+                    toast.error('Erro ao atualizar serviço.');
+                    return;
+                  }
+
+                  const updatedServices = services.map((s) =>
+                    s.id === editServiceData.id ? { ...s, ...editServiceData } : s
+                  );
+
+                  queryClient.setQueryData(['services'], updatedServices);
+
+                  if (editServiceIndex !== null) {
+                    updateItem(editServiceIndex, 'unit_price', editServiceData.default_price);
+                    updateItem(editServiceIndex, 'sale_value', editServiceData.default_price * items[editServiceIndex].quantity);
+                  }
+
+                  toast.success('Serviço atualizado com sucesso!');
+                  setEditServiceIndex(null);
+                }}
+              >
+                Salvar
+              </Button>
             </div>
           </div>
-
-          <div className="flex justify-between items-center pt-4 border-t">
-            <span className="text-lg font-bold">
-              Total: R$ {getTotalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={createBudgetMutation.isPending}>
-                {createBudgetMutation.isPending ? 'Criando...' : 'Criar Orçamento'}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

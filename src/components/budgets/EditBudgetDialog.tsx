@@ -20,6 +20,10 @@ import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { Service } from '@/types/database';
+
+
 
 interface BudgetItem {
   id?: number;
@@ -43,7 +47,24 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
 }) => {
   const queryClient = useQueryClient();
 
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ['services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data as Service[];
+    },
+  });
+
+
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Estados para edição do serviço
+  const [editServiceIndex, setEditServiceIndex] = useState<number | null>(null);
+  const [editServiceData, setEditServiceData] = useState<{ id: string; name: string; default_price: number } | null>(null);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -134,6 +155,19 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
 
     setItems(newItems);
   };
+
+  const handleServiceSelect = (index: number, serviceName: string) => {
+    const service = services.find((s) => s.name === serviceName);
+    const updatedItems = [...items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      service_name: serviceName,
+      unit_price: service?.default_price || 0,
+      total_price: (service?.default_price || 0) * (updatedItems[index].quantity || 1),
+    };
+    setItems(updatedItems);
+  };
+
 
   const handleAddItem = () => {
     setItems([
@@ -331,18 +365,20 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Serviço</Label>
-                      <Input
-                        value={item.service_name}
-                        onChange={(e) =>
-                          handleItemChange(index, 'service_name', e.target.value)
-                        }
-                        required
-                      />
+                      <Textarea
+  placeholder="Digite o nome do serviço"
+  value={item.service_name}
+  onChange={(e) =>
+    handleItemChange(index, 'service_name', e.target.value)
+  }
+/>
+
                     </div>
 
                     <div>
                       <Label>Descrição</Label>
-                      <Input
+                      <Textarea
+                        className="min-h-[60px]"
                         value={item.description || ''}
                         onChange={(e) =>
                           handleItemChange(index, 'description', e.target.value)
@@ -394,6 +430,78 @@ const EditBudgetDialog: React.FC<EditBudgetDialogProps> = ({
               ))}
             </div>
           </div>
+
+          <Dialog open={editServiceIndex !== null} onOpenChange={() => setEditServiceIndex(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Serviço</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <Label htmlFor="service-name">Nome</Label>
+                <Textarea
+                  id="service-name"
+                  value={editServiceData?.name || ''}
+                  onChange={(e) =>
+                    setEditServiceData(prev => prev ? { ...prev, name: e.target.value } : null)
+                  }
+                />
+
+                <Label htmlFor="service-price">Preço padrão</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  id="service-price"
+                  value={editServiceData?.default_price ?? ''}
+                  onChange={(e) =>
+                    setEditServiceData(prev => prev ? { ...prev, default_price: parseFloat(e.target.value) } : null)
+                  }
+                />
+
+                <div className="flex justify-end pt-4">
+                  <Button
+                    onClick={async () => {
+                      if (!editServiceData) return;
+
+                      const { error } = await supabase
+                        .from('services')
+                        .update({
+                          name: editServiceData.name,
+                          default_price: editServiceData.default_price,
+                        })
+                        .eq('id', editServiceData.id);
+
+                      if (error) {
+                        toast.error('Erro ao atualizar serviço.');
+                        return;
+                      }
+
+                      const updatedServices = services.map((s) =>
+                        s.id === editServiceData.id ? { ...s, ...editServiceData } : s
+                      );
+
+                      queryClient.setQueryData(['services'], updatedServices);
+
+                      if (editServiceIndex !== null) {
+                        handleItemChange(editServiceIndex, 'unit_price', editServiceData.default_price);
+                        handleItemChange(
+                          editServiceIndex,
+                          'total_price',
+                          editServiceData.default_price * items[editServiceIndex].quantity
+                        );
+                      }
+
+                      toast.success('Serviço atualizado com sucesso!');
+                      setEditServiceIndex(null);
+                    }}
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
 
           <div className="flex justify-between items-center pt-4 border-t">
             <span className="text-lg font-bold">

@@ -37,7 +37,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
   const { createCall } = useServiceOrderCalls();
   const { user, profile } = useAuth();
   const isWorker = profile?.role === 'worker';
-  
+
 
 
   const [formData, setFormData] = useState({
@@ -176,6 +176,20 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
     setServiceItems(updated);
   };
 
+  const addItem = () => {
+    setServiceItems([
+      ...serviceItems,
+      {
+        service_name: '',
+        service_description: '',
+        quantity: 1,
+        unit_price: 0,
+        sale_value: 0,
+      },
+    ]);
+  };
+  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -225,14 +239,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
           <div>
             <div className="flex justify-between items-center mb-4">
               <Label>Itens de Serviço</Label>
-              <Button type="button" onClick={() => setDraftItem({
-                service_order_id: order.id,
-                service_name: '',
-                service_description: '',
-                quantity: 1,
-                unit_price: 0,
-                sale_value: 0,
-              })} variant="outline" size="sm">
+              <Button type="button" onClick={addItem} variant="outline" size="sm">
                 <Plus size={16} /> Adicionar Item
               </Button>
             </div>
@@ -241,35 +248,31 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
               {/* Lista de itens existentes */}
               {serviceItems.map((item, index) => (
                 <div key={index} className="border rounded-lg p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Serviço</Label>
-                      <Select
-                        value={item.service_name}
-                        onValueChange={(value) => handleServiceChange(index, value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um serviço" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {services.map((service) => (
-                            <SelectItem key={service.id} value={service.name}>
-                              {service.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Descrição</Label>
-                      <Input
-                        value={item.service_description}
-                        onChange={(e) => updateItem(index, 'service_description', e.target.value)}
-                      />
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Serviço</Label>
+                        <Textarea
+                          placeholder="Descreva o serviço"
+                          value={item.service_name}
+                          onChange={(e) => updateItem(index, 'service_name', e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                      <div>
+                        <Label>Descrição</Label>
+                        <Textarea
+                          value={item.service_description || ''}
+                          onChange={(e) => updateItem(index, 'service_description', e.target.value)}
+                          placeholder="Descreva o serviço..."
+                          className="min-h-[60px] resize-y"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                 
+
+
                   <div className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
                     <div>
                       <Label>Qtd</Label>
