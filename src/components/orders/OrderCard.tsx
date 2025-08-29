@@ -33,6 +33,8 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { createInvoice } from '@/services/invoiceService';
+import { parseISO, format as formatDateFns } from 'date-fns';
+import { isValid } from 'date-fns';
 
 
 
@@ -59,6 +61,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
   const [valoresExtras, setValoresExtras] = useState<{ descricao: string; valor: string }[]>([]);
   const [openCalendar, setOpenCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+
 
   // Adiciona um novo item extra vazio
   const adicionarItemExtra = () => {
@@ -145,115 +149,130 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
 
   // Geração da fatura somando valores da OS + extras
   const handleGerarFatura = async () => {
-  const saleValue = order.sale_value || 0;
+    const saleValue = order.sale_value || 0;
 
-  // Filtra somente itens extras válidos
-  const extrasValidos = valoresExtras
-    .filter((item) => item.descricao.trim() !== '' && item.valor.trim() !== '')
-    .map((item) => ({
-      description: item.descricao.trim(),
-      value: parseFloat(item.valor.replace(',', '.')),
-    }));
+    // Filtra somente itens extras válidos
+    const extrasValidos = valoresExtras
+      .filter((item) => item.descricao.trim() !== '' && item.valor.trim() !== '')
+      .map((item) => ({
+        description: item.descricao.trim(),
+        value: parseFloat(item.valor.replace(',', '.')),
+      }));
 
-  const totalExtrasSomados = extrasValidos.reduce((acc, item) => acc + item.value, 0);
-  const totalFinal = saleValue + totalExtrasSomados;
+    const totalExtrasSomados = extrasValidos.reduce((acc, item) => acc + item.value, 0);
+    const totalFinal = saleValue + totalExtrasSomados;
 
-  // ✅ Verificação se valor total é zero
-  if (totalFinal === 0) {
-    toast.warning('Informe um valor antes de gerar a fatura.');
-    return;
-  }
+    // ✅ Verificação se valor total é zero
+    if (totalFinal === 0) {
+      toast.warning('Informe um valor antes de gerar a fatura.');
+      return;
+    }
 
-  if (!order.client_id || !order.client_name || !order.opening_date) {
-    
-  }
+    if (!order.client_id || !order.client_name || !order.opening_date) {
 
-  const startDate = order.service_start_date || order.opening_date.split('T')[0];
-  const endDate = new Date().toISOString().split('T')[0];
+    }
 
-  const invoicePayload = {
-    client_id: order.client_id,
-    client_name: order.client_name,
-    start_date: startDate,
-    end_date: endDate,
-    extras: extrasValidos,
-    orders: [
-      {
-        id: order.id,
-        order_number: order.order_number,
-        sale_value: saleValue,
-        total_hours: order.total_hours || 0,
-      },
-    ],
-    total_value: totalFinal,
-    total_time: order.total_hours || 0,
+    const startDate = order.service_start_date || order.opening_date.split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0];
+
+    const invoicePayload = {
+      client_id: order.client_id,
+      client_name: order.client_name,
+      start_date: startDate,
+      end_date: endDate,
+      extras: extrasValidos,
+      orders: [
+        {
+          id: order.id,
+          order_number: order.order_number,
+          sale_value: saleValue,
+          total_hours: order.total_hours || 0,
+        },
+      ],
+      total_value: totalFinal,
+      total_time: order.total_hours || 0,
+    };
+
+    const { error } = await createInvoice(invoicePayload);
+
+    if (error) {
+      toast.error('Erro ao gerar fatura: ' + error.message);
+      return;
+    }
+
+    await supabase
+      .from('service_orders')
+      .update({ status: 'invoiced' })
+      .eq('id', order.id);
+
+    toast.success('Fatura gerada com sucesso!');
+    queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    navigate('/invoices');
   };
-
-  const { error } = await createInvoice(invoicePayload);
-
-  if (error) {
-    toast.error('Erro ao gerar fatura: ' + error.message);
-    return;
-  }
-
-  await supabase
-    .from('service_orders')
-    .update({ status: 'invoiced' })
-    .eq('id', order.id);
-
-  toast.success('Fatura gerada com sucesso!');
-  queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-  queryClient.invalidateQueries({ queryKey: ['invoices'] });
-  navigate('/invoices');
-};
 
   // Mapeamento de cores e textos de status
   const getStatusColor = (status: string) =>
-    ({
-      received: 'bg-blue-100 text-blue-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      planning: 'bg-purple-100 text-purple-800',
-      in_progress: 'bg-orange-100 text-orange-800',
-      quality_control: 'bg-pink-100 text-pink-800',
-      ready_for_shipment: 'bg-cyan-100 text-cyan-800',
-      in_transit: 'bg-indigo-100 text-indigo-800',
-      delivered: 'bg-teal-100 text-teal-800',
-      invoiced: 'bg-gray-100 text-gray-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-      on_hold: 'bg-yellow-200 text-yellow-900',
-      stopped: 'bg-red-200 text-red-900',
-      ready_for_pickup: 'bg-lime-100 text-lime-800',
-      awaiting_installation: 'bg-blue-100 text-blue-800',
-      to_invoice: 'bg-gray-200 text-gray-900',
-    }[status] || 'bg-gray-100 text-gray-800');
+  ({
+    received: 'bg-blue-100 text-blue-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    planning: 'bg-purple-100 text-purple-800',
+    in_progress: 'bg-orange-100 text-orange-800',
+    quality_control: 'bg-pink-100 text-pink-800',
+    ready_for_shipment: 'bg-cyan-100 text-cyan-800',
+    in_transit: 'bg-indigo-100 text-indigo-800',
+    delivered: 'bg-teal-100 text-teal-800',
+    invoiced: 'bg-gray-100 text-gray-800',
+    completed: 'bg-green-100 text-green-800',
+    cancelled: 'bg-red-100 text-red-800',
+    on_hold: 'bg-yellow-200 text-yellow-900',
+    stopped: 'bg-red-200 text-red-900',
+    ready_for_pickup: 'bg-lime-100 text-lime-800',
+    awaiting_installation: 'bg-blue-100 text-blue-800',
+    to_invoice: 'bg-gray-200 text-gray-900',
+  }[status] || 'bg-gray-100 text-gray-800');
 
   const getStatusText = (status: string) =>
-    ({
-      received: 'Recebida',
-      pending: 'Pendente',
-      planning: 'Planejamento',
-      in_progress: 'Em Andamento',
-      quality_control: 'Controle de Qualidade',
-      ready_for_shipment: 'Pronta p/ Envio',
-      in_transit: 'Em Trânsito',
-      delivered: 'Entregue',
-      invoiced: 'Faturada',
-      completed: 'Concluída',
-      cancelled: 'Cancelada',
-      on_hold: 'Em espera',
-      stopped: 'Paralisada',
-      ready_for_pickup: 'Aguardando Retirada',
-      awaiting_installation: 'Aguardando Instalação',
-      to_invoice: 'Faturar',
-      finalized: 'Finalizado',
-    }[status] || status);
+  ({
+    received: 'Recebida',
+    pending: 'Pendente',
+    planning: 'Planejamento',
+    in_progress: 'Em Andamento',
+    quality_control: 'Controle de Qualidade',
+    ready_for_shipment: 'Pronta p/ Envio',
+    in_transit: 'Em Trânsito',
+    delivered: 'Entregue',
+    invoiced: 'Faturada',
+    completed: 'Concluída',
+    cancelled: 'Cancelada',
+    on_hold: 'Em espera',
+    stopped: 'Paralisada',
+    ready_for_pickup: 'Aguardando Retirada',
+    awaiting_installation: 'Aguardando Instalação',
+    to_invoice: 'Faturar',
+    finalized: 'Finalizado',
+  }[status] || status);
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR');
+  const formatDate = (dateString: string | Date | null | undefined) => {
+    if (!dateString) return '-';
+
+    let date: Date;
+
+    // Se for string no formato só data (ex: '2025-08-08')
+    if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      date = parseISO(dateString); // Mantém sem conversão de fuso
+    } else {
+      // Para data completa com horário (ex: '2025-08-07T14:30:00Z'), ou objeto Date
+      date = new Date(dateString);
+    }
+
+    if (!isValid(date)) return '-';
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+    }).format(date);
   };
+
 
   return (
     <Card className="h-full">
@@ -284,12 +303,14 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
           {/* mostra a data agendada*/}
 
           {/* Adicione aqui o novo bloco para mostrar a data agendada */}
-    {order.service_start_date && (
-      <div className="flex items-center gap-2 text-slate-600">
-        <CalendarIcon size={16} />
-        <span>Instalação Do Serviço: {format(new Date(order.service_start_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
-      </div>
-    )}
+          {order.service_start_date && (
+            <div className="flex items-center gap-2 text-slate-600">
+              <CalendarIcon size={16} />
+              <span>
+                Instalação Do Serviço: {format(parseISO(order.service_start_date), 'dd/MM/yyyy', { locale: ptBR })}
+              </span>
+            </div>
+          )}
 
           {order.deadline && (
             <div className="flex items-center gap-2 text-slate-600">
@@ -304,8 +325,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
               {order.urgency === 'high'
                 ? 'Alta'
                 : order.urgency === 'medium'
-                ? 'Média'
-                : 'Baixa'}
+                  ? 'Média'
+                  : 'Baixa'}
             </span>
           </div>
 
@@ -338,7 +359,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
               <CheckCircle size={16} className="mr-2" />
               Aprovar Controle de Qualidade
             </Button>
-            
+
             <Button
               onClick={async () => {
                 const { error } = await supabase

@@ -12,11 +12,14 @@ import {
   Trash2,
   Clock,
   User,
-  FileText
+  FileText,
+  Edit
 } from 'lucide-react';
 import { useServiceOrderTasks } from '@/hooks/useServiceOrderTasks';
+import { useRealtimeTasks } from '@/hooks/useRealtimeTasks';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateTaskDialog } from '@/components/orders/CreateTaskDialog';
+import { EditTaskDialog } from './EditTaskDialog';
 import { TaskTimeTracker } from './TaskTimeTracker';
 import { ServiceOrderTimeReport } from './ServiceOrderTimeReport';
 import { TaskStatus } from '@/types/database';
@@ -33,7 +36,10 @@ interface TaskListProps {
 
 export const TaskList: React.FC<TaskListProps> = ({ serviceOrderId, orderNumber, clientName }) => {
   const { profile } = useAuth();
-  const { tasks, isLoading, updateTask, refetch } = useServiceOrderTasks(serviceOrderId);
+  const { tasks, isLoading, updateTask, deleteTask } = useServiceOrderTasks(serviceOrderId);
+  
+  // ✅ Hook para atualizações em tempo real das tarefas
+  useRealtimeTasks(serviceOrderId);
 
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [showTimeReport, setShowTimeReport] = useState(false);
@@ -50,16 +56,10 @@ export const TaskList: React.FC<TaskListProps> = ({ serviceOrderId, orderNumber,
 
       if (materialError) throw new Error('Erro ao excluir materiais: ' + materialError.message);
 
-      // 2. Exclui a tarefa
-      const { error: taskError } = await supabase
-        .from('service_order_tasks')
-        .delete()
-        .eq('id', taskId);
-
-      if (taskError) throw new Error('Erro ao excluir tarefa: ' + taskError.message);
+      // 2. Exclui a tarefa usando o hook que já tem invalidação automática
+      await deleteTask(taskId);
 
       toast.success('Tarefa e materiais excluídos com sucesso!');
-      refetch(); // ✅ Atualiza lista após exclusão
     } catch (err: any) {
       toast.error(err.message || 'Erro ao excluir tarefa');
     }
@@ -259,15 +259,23 @@ export const TaskList: React.FC<TaskListProps> = ({ serviceOrderId, orderNumber,
                   )}
 
                   {canManageTasks && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteTaskWithMaterials(task.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 size={14} className="mr-1" />
-                      Excluir
-                    </Button>
+                    <>
+                      <EditTaskDialog task={task} serviceOrderId={serviceOrderId}>
+                        <Button variant="outline" size="sm" className="text-blue-600 hover:text-blue-700">
+                          <Edit size={14} className="mr-1" />
+                          Editar
+                        </Button>
+                      </EditTaskDialog>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteTaskWithMaterials(task.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 size={14} className="mr-1" />
+                        Excluir
+                      </Button>
+                    </>
                   )}
                 </div>
 

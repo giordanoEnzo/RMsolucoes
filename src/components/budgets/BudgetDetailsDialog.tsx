@@ -18,7 +18,7 @@ const BudgetDetailsDialog: React.FC<BudgetDetailsDialogProps> = ({ budget, onClo
     queryKey: ['budget-items', budget?.id],
     queryFn: async () => {
       if (!budget?.id) return [];
-      
+
       const { data, error } = await supabase
         .from('budget_items')
         .select('*')
@@ -30,6 +30,13 @@ const BudgetDetailsDialog: React.FC<BudgetDetailsDialogProps> = ({ budget, onClo
     },
     enabled: !!budget?.id,
   });
+
+  const formatLocalDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setHours(d.getHours() + 12); // Corrige fuso UTC-3
+    return d.toLocaleDateString('pt-BR');
+  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,7 +76,7 @@ const BudgetDetailsDialog: React.FC<BudgetDetailsDialogProps> = ({ budget, onClo
             </Badge>
           </div>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Client Information */}
           <Card>
@@ -105,7 +112,7 @@ const BudgetDetailsDialog: React.FC<BudgetDetailsDialogProps> = ({ budget, onClo
                 <h4 className="font-medium mb-2">Descrição:</h4>
                 <p className="text-gray-700">{budget.description}</p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium mb-1">Data de Criação:</h4>
@@ -114,13 +121,13 @@ const BudgetDetailsDialog: React.FC<BudgetDetailsDialogProps> = ({ budget, onClo
                     <span>{new Date(budget.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
                 </div>
-                
+
                 {budget.valid_until && (
                   <div>
                     <h4 className="font-medium mb-1">Válido até:</h4>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span>{new Date(budget.valid_until).toLocaleDateString('pt-BR')}</span>
+                      <span>{formatLocalDate(budget.valid_until)}</span>
                     </div>
                   </div>
                 )}
@@ -143,11 +150,11 @@ const BudgetDetailsDialog: React.FC<BudgetDetailsDialogProps> = ({ budget, onClo
                         R$ {item.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    
+
                     {item.description && (
                       <p className="text-sm text-gray-600 mb-2">{item.description}</p>
                     )}
-                    
+
                     <div className="flex justify-between text-sm">
                       <span>Quantidade: {item.quantity}</span>
                       <span>Preço unitário: R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>

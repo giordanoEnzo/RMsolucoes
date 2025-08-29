@@ -166,6 +166,8 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           name: orderData.client_name,
           contact: orderData.client_contact,
           address: orderData.client_address,
+          deadline: orderData.deadline ? `${orderData.deadline}T12:00:00` : null,
+
         }).select().single();
 
         if (error || !newClient) throw error;

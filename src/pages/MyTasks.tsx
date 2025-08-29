@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeTasks } from '@/hooks/useRealtimeTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,10 @@ interface TaskWithOrder extends ServiceOrderTask {
 
 const MyTasks = () => {
   const { profile } = useAuth();
+  
+  // ✅ Hook para atualizações em tempo real das tarefas
+  useRealtimeTasks();
+  
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [expandedTask, setExpandedTask] = useState<string | null>(null);

@@ -158,7 +158,8 @@ const Budgets = () => {
                   </div>
                   {budget.valid_until && (
                     <p className="text-xs text-gray-500">
-                      Válido até: {new Date(budget.valid_until).toLocaleDateString('pt-BR')}
+                      Válido até: {new Date(new Date(budget.valid_until).getTime() + 12 * 60 * 60 * 1000).toLocaleDateString('pt-BR')}
+
                     </p>
                   )}
                   <div className="flex flex-wrap justify-between items-center gap-2 pt-2">

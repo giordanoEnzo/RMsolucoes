@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeTasks } from '@/hooks/useRealtimeTasks';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Card,
@@ -23,8 +24,12 @@ interface TaskManagementProps {
 
 const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
   const { profile } = useAuth();
+  
+  // ✅ Hook para atualizações em tempo real das tarefas
+  useRealtimeTasks(serviceOrderId);
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [editingTask, setEditingTask] = useState<ServiceOrderTask | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -159,7 +164,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
     });
   };
 
-  const handleEdit = (task: any) => {
+  const handleEdit = (task: ServiceOrderTask) => {
     setEditingTask(task);
     setFormData({
       title: task.title,
@@ -289,7 +294,13 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
               <div className="flex gap-2">
                 {canManage && (
                   <>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(task)}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleEdit(task)}
+                      title="Editar Tarefa"
+                      className="hover:bg-blue-50 hover:text-blue-600"
+                    >
                       <Edit size={16} />
                     </Button>
                     <Button 
@@ -297,6 +308,8 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                       size="sm" 
                       onClick={() => deleteTask(task.id)}
                       disabled={isDeleting}
+                      title="Excluir Tarefa"
+                      className="hover:bg-red-50 hover:text-red-600"
                     >
                       <Trash2 size={16} />
                     </Button>

@@ -27,14 +27,8 @@ export const Footer = () => {
             </p>
           </div>
 
-          {/* Logo da empresa desenvolvedora */}
-          <div className="flex justify-center mt-4">
-            <img
-              src={xbertogna}
-              alt="Logo da empresa desenvolvedora"
-              className="h-10"
-            />
-          </div>
+          
+          
         </div>
       </div>
     </footer>

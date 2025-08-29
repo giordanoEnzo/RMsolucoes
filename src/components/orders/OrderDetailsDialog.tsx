@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import TaskManagement from './TaskManagement';
 import ImageUpload from './ImageUpload';
 
+
 interface OrderDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,6 +22,9 @@ interface OrderDetailsDialogProps {
     created_by_user?: { name: string };
   };
 }
+
+
+
 
 const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogProps) => {
   const { profile } = useAuth();
