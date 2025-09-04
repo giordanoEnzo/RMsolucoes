@@ -28,7 +28,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
     service_description: '',
     urgency: 'medium' as 'low' | 'medium' | 'high',
     assigned_worker_id: '',
-    deadline: '',
+
   });
 
   const [items, setItems] = useState<any[]>([{
@@ -166,7 +166,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           name: orderData.client_name,
           contact: orderData.client_contact,
           address: orderData.client_address,
-          deadline: orderData.deadline ? `${orderData.deadline}T12:00:00` : null,
+
 
         }).select().single();
 
@@ -177,9 +177,9 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
       const { data: orderNumber, error: numError } = await supabase.rpc('generate_order_number');
       if (numError) throw numError;
 
-      
 
-      
+
+
       const { data: order, error: orderError } = await supabase.from('service_orders').insert({
         order_number: orderNumber,
         client_id: clientId,
@@ -191,7 +191,6 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
         created_by: profile?.id,
         urgency: orderData.urgency,
         assigned_worker_id: orderData.assigned_worker_id || null,
-        deadline: orderData.deadline || null,
         status: 'pendente',
       }).select().single();
 
@@ -454,7 +453,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
                     </div>
                   </div>
 
-                  <div className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
+                  <div className={⁠ ${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'} ⁠}>
                     <div>
                       <Label>Quantidade</Label>
                       <Input
@@ -521,7 +520,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           </div>
 
           <div className="flex justify-between items-center pt-4 border-t">
-            <span className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
+            <span className={⁠ ${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'} ⁠}>
               Total: R$ {getTotalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
             <div className="flex gap-2">
