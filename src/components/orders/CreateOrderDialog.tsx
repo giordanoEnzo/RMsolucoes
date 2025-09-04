@@ -453,7 +453,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
                     </div>
                   </div>
 
-                  <div className={⁠ ${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'} ⁠}>
+                  <div className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
                     <div>
                       <Label>Quantidade</Label>
                       <Input
@@ -520,7 +520,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           </div>
 
           <div className="flex justify-between items-center pt-4 border-t">
-            <span className={⁠ ${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'} ⁠}>
+            <span className={`${(profile?.role === 'manager' || profile?.role === 'worker') ? 'hidden' : 'grid grid-cols-3 gap-4'}`}>
               Total: R$ {getTotalValue().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
             <div className="flex gap-2">
