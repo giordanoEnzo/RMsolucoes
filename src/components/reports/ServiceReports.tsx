@@ -160,7 +160,7 @@ const ServiceReports = () => {
                         <TableHead>OS</TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead>Dias de Atraso</TableHead>
-                        <TableHead>Funcionário</TableHead>
+                        <TableHead>Responsável</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -198,7 +198,7 @@ const ServiceReports = () => {
                         <TableHead>Tarefa</TableHead>
                         <TableHead>OS</TableHead>
                         <TableHead>Dias de Atraso</TableHead>
-                        <TableHead>Funcionário</TableHead>
+                        <TableHead>Responsável</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -209,7 +209,12 @@ const ServiceReports = () => {
                           <TableCell>
                             <Badge variant="destructive">{task.days_overdue} dias</Badge>
                           </TableCell>
-                          <TableCell>{task.assigned_worker || 'Não atribuído'}</TableCell>
+                          <TableCell>
+                            {task.assigned_worker 
+                              ? `${task.assigned_worker} (${task.assigned_worker_role === 'admin' ? 'Administrador' : task.assigned_worker_role === 'manager' ? 'Gerente' : 'Operário'})`
+                              : 'Não atribuído'
+                            }
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

@@ -159,7 +159,9 @@ export const useWorkers = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name, role')
-        .eq('role', 'worker');
+        .in('role', ['admin', 'manager', 'worker'])
+        .order('role', { ascending: false })
+        .order('name');
 
       if (error) throw error;
       return data as Profile[];

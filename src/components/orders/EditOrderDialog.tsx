@@ -44,6 +44,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
     client_name: '',
     client_contact: '',
     client_address: '',
+    client_zipcode: '',
     service_description: '',
     sale_value: '',
     status: 'pending' as OrderStatus,
@@ -82,27 +83,47 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
 
   useEffect(() => {
     if (order) {
-      setFormData({
-        client_name: order.client_name || '',
-        client_contact: order.client_contact || '',
-        client_address: order.client_address || '',
-        service_description: order.service_description || '',
-        sale_value: order.sale_value?.toString() || '',
-        status: order.status,
-        urgency: order.urgency,
-        assigned_worker_id: order.assigned_worker_id || 'unassigned',
-        deadline: order.deadline || '',
-      });
+      const loadOrderData = async () => {
+        let clientZipcode = '';
+        
+        // Buscar CEP do cliente se houver client_id
+        if (order.client_id) {
+          const { data: clientData, error: clientError } = await supabase
+            .from('clients')
+            .select('cep')
+            .eq('id', order.client_id)
+            .single();
+          
+          if (!clientError && clientData) {
+            clientZipcode = clientData.cep || '';
+          }
+        }
 
-      const fetchItems = async () => {
-        const { data, error } = await supabase
-          .from('service_order_items')
-          .select('*')
-          .eq('order_id', order.id);
-        if (error) console.error(error);
-        else setServiceItems(data || []);
+        setFormData({
+          client_name: order.client_name || '',
+          client_contact: order.client_contact || '',
+          client_address: order.client_address || '',
+          client_zipcode: clientZipcode,
+          service_description: order.service_description || '',
+          sale_value: order.sale_value?.toString() || '',
+          status: order.status,
+          urgency: order.urgency,
+          assigned_worker_id: order.assigned_worker_id || 'unassigned',
+          deadline: order.deadline || '',
+        });
+
+        const fetchItems = async () => {
+          const { data, error } = await supabase
+            .from('service_order_items')
+            .select('*')
+            .eq('order_id', order.id);
+          if (error) console.error(error);
+          else setServiceItems(data || []);
+        };
+        fetchItems();
       };
-      fetchItems();
+      
+      loadOrderData();
     }
   }, [order]);
 
@@ -139,6 +160,19 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
     };
 
     await updateOrder(updateData);
+
+    // Atualizar CEP do cliente se houver client_id
+    if (order.client_id && formData.client_zipcode) {
+      const { error: clientUpdateError } = await supabase
+        .from('clients')
+        .update({ cep: formData.client_zipcode })
+        .eq('id', order.client_id);
+      
+      if (clientUpdateError) {
+        console.error('Erro ao atualizar CEP do cliente:', clientUpdateError);
+        toast.error('Erro ao atualizar CEP do cliente');
+      }
+    }
 
     await supabase.from('service_order_items').delete().eq('order_id', order.id);
     const { error: insertError } = await supabase.from('service_order_items').insert(
@@ -216,11 +250,20 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
                 disabled={isWorker}
               />
             </div>
-            <div className="col-span-2">
+            <div>
               <Label>Endereço</Label>
               <Input
                 value={formData.client_address}
                 onChange={(e) => setFormData((p) => ({ ...p, client_address: e.target.value }))}
+                disabled={isWorker}
+              />
+            </div>
+            <div>
+              <Label>CEP</Label>
+              <Input
+                value={formData.client_zipcode}
+                onChange={(e) => setFormData((p) => ({ ...p, client_zipcode: e.target.value }))}
+                placeholder="00000-000"
                 disabled={isWorker}
               />
             </div>
@@ -472,19 +515,19 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
               </Select>
             </div>
             <div>
-              <Label>Colaborador</Label>
+              <Label>Responsável</Label>
               <Select
                 value={formData.assigned_worker_id}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_worker_id: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar colaborador" />
+                  <SelectValue placeholder="Selecionar responsável" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Não atribuído</SelectItem>
                   {workers.map((worker) => (
                     <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name}
+                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
                     </SelectItem>
                   ))}
                 </SelectContent>

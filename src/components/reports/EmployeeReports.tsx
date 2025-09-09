@@ -89,14 +89,14 @@ const EmployeeReports = () => {
       {/* Tabela Detalhada */}
       <Card>
         <CardHeader>
-          <CardTitle>Desempenho Individual dos Funcionários</CardTitle>
+          <CardTitle>Desempenho Individual dos Responsáveis</CardTitle>
         </CardHeader>
         <CardContent>
           {employeeStats && employeeStats.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Funcionário</TableHead>
+                  <TableHead>Responsável</TableHead>
                   <TableHead>Total de Tarefas</TableHead>
                   <TableHead>Tarefas Concluídas</TableHead>
                   <TableHead>Total de Horas</TableHead>
@@ -112,7 +112,9 @@ const EmployeeReports = () => {
                   
                   return (
                     <TableRow key={employee.worker_id}>
-                      <TableCell className="font-medium">{employee.worker_name}</TableCell>
+                      <TableCell className="font-medium">
+                        {employee.worker_name} ({employee.worker_role === 'admin' ? 'Administrador' : employee.worker_role === 'manager' ? 'Gerente' : 'Operário'})
+                      </TableCell>
                       <TableCell>{employee.total_tasks}</TableCell>
                       <TableCell>{employee.completed_tasks}</TableCell>
                       <TableCell>{Number(employee.total_hours_worked).toFixed(1)}h</TableCell>

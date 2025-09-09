@@ -25,10 +25,11 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
     client_name: '',
     client_contact: '',
     client_address: '',
+    client_zipcode: '',
     service_description: '',
     urgency: 'medium' as 'low' | 'medium' | 'high',
     assigned_worker_id: '',
-
+    deadline: '',
   });
 
   const [items, setItems] = useState<any[]>([{
@@ -82,6 +83,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
         client_name: '',
         client_contact: '',
         client_address: '',
+        client_zipcode: '',
       }));
     } else {
       const client = clients.find(c => c.id === clientId);
@@ -92,6 +94,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           client_name: client.name,
           client_contact: client.contact,
           client_address: client.address,
+          client_zipcode: client.cep || '',
         });
       }
     }
@@ -166,7 +169,8 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           name: orderData.client_name,
           contact: orderData.client_contact,
           address: orderData.client_address,
-
+          cep: orderData.client_zipcode,
+          
 
         }).select().single();
 
@@ -177,9 +181,9 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
       const { data: orderNumber, error: numError } = await supabase.rpc('generate_order_number');
       if (numError) throw numError;
 
+      
 
-
-
+      
       const { data: order, error: orderError } = await supabase.from('service_orders').insert({
         order_number: orderNumber,
         client_id: clientId,
@@ -238,6 +242,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
         client_name: '',
         client_contact: '',
         client_address: '',
+        client_zipcode: '',
         service_description: '',
         urgency: 'medium',
         assigned_worker_id: '',
@@ -305,12 +310,22 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
             </div>
           </div>
 
-          <div>
-            <Label>Endereço</Label>
-            <Input
-              value={formData.client_address}
-              onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Endereço</Label>
+              <Input
+                value={formData.client_address}
+                onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>CEP</Label>
+              <Input
+                value={formData.client_zipcode}
+                onChange={(e) => setFormData({ ...formData, client_zipcode: e.target.value })}
+                placeholder="00000-000"
+              />
+            </div>
           </div>
 
           <div>

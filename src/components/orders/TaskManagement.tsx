@@ -398,7 +398,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                   <SelectContent>
                     {workers.map((worker) => (
                       <SelectItem key={worker.id} value={worker.id}>
-                        {worker.name}
+                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -507,7 +507,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                   <SelectContent>
                     {workers.map((worker) => (
                       <SelectItem key={worker.id} value={worker.id}>
-                        {worker.name}
+                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
                       </SelectItem>
                     ))}
                   </SelectContent>

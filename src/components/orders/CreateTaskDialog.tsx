@@ -39,8 +39,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name')
-        .eq('role', 'worker')
+        .select('id, name, role')
+        .in('role', ['admin', 'manager', 'worker'])
+        .order('role', { ascending: false })
         .order('name');
 
       if (error) throw error;
@@ -129,18 +130,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
           </div>
 
           <div>
-            <Label>Operário Responsável</Label>
+            <Label>Responsável</Label>
             <Select
               value={watch('assigned_worker_id')}
               onValueChange={(value) => setValue('assigned_worker_id', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um operário" />
+                <SelectValue placeholder="Selecione um responsável" />
               </SelectTrigger>
               <SelectContent>
                 {workers.map((worker) => (
                   <SelectItem key={worker.id} value={worker.id}>
-                    {worker.name}
+                    {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
                   </SelectItem>
                 ))}
               </SelectContent>

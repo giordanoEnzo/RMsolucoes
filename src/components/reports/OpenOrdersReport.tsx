@@ -117,7 +117,12 @@ export const OpenOrdersReport: React.FC<OpenOrdersReportProps> = ({ dateRange })
                       {service.priority}
                     </Badge>
                   </TableCell>
-                  <TableCell>{service.assigned_worker?.name || 'Não atribuído'}</TableCell>
+                  <TableCell>
+                    {service.assigned_worker?.name 
+                      ? `${service.assigned_worker.name} (${service.assigned_worker.role === 'admin' ? 'Administrador' : service.assigned_worker.role === 'manager' ? 'Gerente' : 'Operário'})`
+                      : 'Não atribuído'
+                    }
+                  </TableCell>
                   <TableCell>
                     {service.deadline ? new Date(service.deadline).toLocaleDateString('pt-BR') : '-'}
                   </TableCell>

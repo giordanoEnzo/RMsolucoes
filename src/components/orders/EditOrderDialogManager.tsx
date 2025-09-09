@@ -163,16 +163,16 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
             </div>
 
             <div>
-              <Label htmlFor="assigned_worker">Colaborador</Label>
+              <Label htmlFor="assigned_worker">Responsável</Label>
               <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_worker_id: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar colaborador" />
+                  <SelectValue placeholder="Selecionar responsável" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Não atribuído</SelectItem>
                   {workers.map((worker) => (
                     <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name}
+                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
                     </SelectItem>
                   ))}
                 </SelectContent>

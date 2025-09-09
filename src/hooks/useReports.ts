@@ -9,7 +9,7 @@ export const useReports = (dateRange?: { from: Date; to: Date }) => {
         .from('service_orders')
         .select(`
           *,
-          assigned_worker:profiles!assigned_worker_id(name)
+          assigned_worker:profiles!assigned_worker_id(name, role)
         `)
         .not('status', 'in', '(completed,delivered,cancelled)')
         .order('created_at', { ascending: false });
@@ -35,7 +35,7 @@ export const useReports = (dateRange?: { from: Date; to: Date }) => {
         .select(`
           *,
           service_order:service_orders!inner(*),
-          assigned_worker:profiles!assigned_worker_id(name)
+          assigned_worker:profiles!assigned_worker_id(name, role)
         `)
         .not('status', 'in', '(completed,cancelled)')
         .order('created_at', { ascending: false });

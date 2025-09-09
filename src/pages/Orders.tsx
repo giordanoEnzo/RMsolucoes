@@ -188,14 +188,14 @@ const Orders = () => {
             {canManageOrders && (
               <Select value={workerFilter} onValueChange={setWorkerFilter}>
                 <SelectTrigger className={isMobile ? 'w-full' : 'w-48'}>
-                  <SelectValue placeholder="Filtrar por colaborador" />
+                  <SelectValue placeholder="Filtrar por responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os colaboradores</SelectItem>
+                  <SelectItem value="all">Todos os responsáveis</SelectItem>
                   <SelectItem value="unassigned">Não atribuído</SelectItem>
                   {workers.map((worker) => (
                     <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name}
+                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
                     </SelectItem>
                   ))}
                 </SelectContent>
