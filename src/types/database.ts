@@ -179,25 +179,29 @@ export interface ServiceOrderCall {
   created_at: string;
 }
 
-interface Invoice {
+export interface Invoice {
   id: string;
-  number: string;
   client_id: string;
   client_name: string;
   start_date: string;
   end_date: string;
   total_value: number;
-  total_hours: number;
-  service_orders: {
+  total_time: number;
+  orders: {
     id: string;
     order_number: string;
     sale_value: number;
-    total_hours: number;
+    total_hours?: number;
+    service_time?: number;
+    service_description?: string;
+    items?: any[];
   }[];
   extras?: {
     description: string;
     value: number;
   }[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ServiceOrderItem {

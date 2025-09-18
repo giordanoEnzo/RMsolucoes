@@ -301,7 +301,10 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
   const handleDownloadPDF = async () => {
     try {
       const doc = await generatePDF();
-      doc.save(`fatura_${invoice.number}.pdf`);
+      // Criar nome do arquivo com nome do cliente
+      const clientName = invoice.client_name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
+      const fileName = `fatura_${invoice.number}_${clientName}.pdf`;
+      doc.save(fileName);
       toast.success('PDF baixado com sucesso!');
       onClose();
     } catch (error) {
@@ -314,7 +317,9 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     try {
       const doc = await generatePDF();
       const blob = doc.output('blob');
-      const fileName = `faturas/fatura_${invoice.number}.pdf`;
+      // Criar nome do arquivo com nome do cliente
+      const clientName = invoice.client_name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
+      const fileName = `faturas/fatura_${invoice.number}_${clientName}.pdf`;
 
       const { error } = await supabase.storage.from('pdfs').upload(fileName, blob, {
         contentType: 'application/pdf',

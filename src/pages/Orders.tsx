@@ -166,7 +166,7 @@ const Orders = () => {
                   <SelectItem value="ready_for_pickup">Aguardando Retirada</SelectItem>
                   <SelectItem value="awaiting_installation">Aguardando Instalação</SelectItem>
                   <SelectItem value="to_invoice">Faturar</SelectItem>
-                  <SelectItem value="completed">Finalizado</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
 

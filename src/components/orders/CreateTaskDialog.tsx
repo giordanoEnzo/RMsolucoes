@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useServiceOrderTasks } from '@/hooks/useServiceOrderTasks';
 import { TaskPriority } from '@/types/database';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CreateTaskDialogProps {
   serviceOrderId: string;
@@ -33,6 +34,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
   const [open, setOpen] = useState(false);
   const [deadline, setDeadline] = useState<Date>();
   const { createTask, isCreating } = useServiceOrderTasks(serviceOrderId);
+  const { user, profile } = useAuth();
 
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
@@ -130,7 +132,20 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
           </div>
 
           <div>
-            <Label>Responsável</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Responsável</Label>
+              {profile && ['admin', 'manager'].includes(profile.role) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setValue('assigned_worker_id', profile.id)}
+                  className="text-sm"
+                >
+                  Atribuir a mim
+                </Button>
+              )}
+            </div>
             <Select
               value={watch('assigned_worker_id')}
               onValueChange={(value) => setValue('assigned_worker_id', value)}
@@ -142,6 +157,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
                 {workers.map((worker) => (
                   <SelectItem key={worker.id} value={worker.id}>
                     {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                    {worker.id === profile?.id && ' (Você)'}
                   </SelectItem>
                 ))}
               </SelectContent>

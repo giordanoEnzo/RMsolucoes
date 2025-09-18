@@ -6,12 +6,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, FileText } from 'lucide-react';
+import { Plus, Loader2, FileText, Eye } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice } from '@/types/database';
 //import NewInvoiceDialog from '@/components/invoices/NewInvoiceDialog';
 import { InvoicePDFGenerator } from '@/components/invoices/InvoicePDFGenerator';
+import { InvoiceViewDialog } from '@/components/invoices/InvoiceViewDialog';
 import { getInvoiceItemsByOrderIds } from '@/utils/invoiceUtils';
 import { testInvoiceItems } from '@/utils/testInvoiceItems';
 import { Input } from '@/components/ui/input';
@@ -74,6 +75,7 @@ const groupInvoicesByClientAndMonth = (invoices: Invoice[]) => {
 const InvoicesPage: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [clientName, setClientName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -238,10 +240,19 @@ const InvoicesPage: React.FC = () => {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
+                                variant="outline"
+                                onClick={() => setViewingInvoice(invoice)}
+                                className="border-[#2D3D2C] text-[#2D3D2C] hover:bg-[#2D3D2C] hover:text-white"
+                              >
+                                <Eye size={16} className="mr-1" /> Visualizar
+                              </Button>
+                              
+                              <Button
+                                size="sm"
                                 onClick={() => setSelectedInvoice(invoice)}
                                 className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
                               >
-                                <FileText size={16} /> Gerar PDF
+                                <FileText size={16} className="mr-1" /> Gerar PDF
                               </Button>
                               
                               <Button
@@ -266,6 +277,17 @@ const InvoicesPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {viewingInvoice && (
+        <InvoiceViewDialog
+          invoice={viewingInvoice}
+          onClose={() => setViewingInvoice(null)}
+          onGeneratePDF={() => {
+            setViewingInvoice(null);
+            setSelectedInvoice(viewingInvoice);
+          }}
+        />
+      )}
 
       {selectedInvoice && (
         <InvoicePDFGenerator

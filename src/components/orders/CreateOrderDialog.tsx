@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkers } from '@/hooks/useServiceOrders';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,14 +66,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
     }
   });
 
-  const { data: workers = [] } = useQuery({
-    queryKey: ['workers'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, name').eq('role', 'worker');
-      if (error) throw error;
-      return data;
-    }
-  });
+  const { workers } = useWorkers();
 
   const handleClientSelect = (clientId: string) => {
     if (clientId === 'new_client') {
@@ -519,15 +513,17 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
               </Select>
             </div>
             <div>
-              <Label>Operário Atribuído</Label>
+              <Label>Responsável Atribuído</Label>
               <Select
                 value={formData.assigned_worker_id}
                 onValueChange={(v) => setFormData({ ...formData, assigned_worker_id: v })}
               >
-                <SelectTrigger><SelectValue placeholder="Selecione um operário" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione um responsável" /></SelectTrigger>
                 <SelectContent>
                   {workers.map(w => (
-                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name} ({w.role === 'admin' ? 'Administrador' : w.role === 'manager' ? 'Gerente' : 'Operário'})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
