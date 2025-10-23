@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Menu, X, Facebook, Instagram, LogIn } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom"; // IMPORTANTE
-import logo from '@/assets/logo.png'; // ou '../assets/logo.png' dependendo da estrutura
+import logo from '../assets/logo.png'; // ou '../assets/logo.png' dependendo da estrutura
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);

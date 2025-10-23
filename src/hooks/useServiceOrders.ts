@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { ServiceOrder, Profile } from '@/types/database';
+import { supabase } from '../integrations/supabase/client';
+import { ServiceOrder, Profile } from '../types/database';
 import { toast } from 'sonner';
 
 // Gera número da OS no formato OS0001-1, OS0001-2, etc.

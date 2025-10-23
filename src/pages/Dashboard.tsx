@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useServiceOrders } from '@/hooks/useServiceOrders';
-import OrderCard from '@/components/orders/OrderCard';
-import CreateOrderDialog from '@/components/orders/CreateOrderDialog';
-import EditOrderDialog from '@/components/orders/EditOrderDialog';
-import EditOrderDialogManager from '@/components/orders/EditOrderDialogManager';
-import DeleteOrderDialog from '@/components/orders/DeleteOrderDialog';
-import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '../contexts/AuthContext';
+import { useServiceOrders } from '../hooks/useServiceOrders';
+import OrderCard from '../components/orders/OrderCard';
+import CreateOrderDialog from '../components/orders/CreateOrderDialog';
+import EditOrderDialog from '../components/orders/EditOrderDialog';
+import EditOrderDialogManager from '../components/orders/EditOrderDialogManager';
+import DeleteOrderDialog from '../components/orders/DeleteOrderDialog';
+import OrderDetailsDialog from '../components/orders/OrderDetailsDialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { Plus, Package, Users, ClipboardList, TrendingUp, Loader2 } from 'lucide-react';
-import { ServiceOrder } from '@/types/database';
+import { ServiceOrder } from '../types/database';
 
 const Dashboard = () => {
   const { profile } = useAuth();

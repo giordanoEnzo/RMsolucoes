@@ -4,26 +4,26 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+} from '../ui/select';
+import { Textarea } from '../ui/textarea';
 import { Plus } from 'lucide-react';
-import { ServiceOrder, OrderStatus, Urgency } from '@/types/database';
-import { useServiceOrders, useWorkers } from '@/hooks/useServiceOrders';
+import { ServiceOrder, OrderStatus, Urgency } from '../../types/database';
+import { useServiceOrders, useWorkers } from '../../hooks/useServiceOrders';
 import OnHoldReasonDialog from './OnHoldReasonDialog';
-import { useServiceOrderCalls } from '@/hooks/useServiceOrderCalls';
-import { useAuth } from '@/contexts/AuthContext';
+import { useServiceOrderCalls } from '../../hooks/useServiceOrderCalls';
+import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../../integrations/supabase/client';
 
 interface EditOrderDialogProps {
   open: boolean;

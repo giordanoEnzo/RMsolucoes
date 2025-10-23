@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Budget, BudgetItem } from '@/types/database';
+import { supabase } from '../integrations/supabase/client';
+import { Budget, BudgetItem } from '../types/database';
 import { toast } from 'sonner';
 
 export const useBudgets = (filters?: {

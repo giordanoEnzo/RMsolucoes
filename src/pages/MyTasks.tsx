@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRealtimeTasks } from '@/hooks/useRealtimeTasks';
+import { useAuth } from '../contexts/AuthContext';
+import { useRealtimeTasks } from '../hooks/useRealtimeTasks';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '../integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { CheckCircle, Clock, AlertCircle, User, Filter, Loader2, Plus } from 'lucide-react';
-import { ServiceOrderTask, TaskStatus } from '@/types/database';
-import ClientLogo from '@/components/ui/client-logo';
-import { TaskTimeTracker } from '@/components/tasks/TaskTimeTracker';
-import { MaterialSelector } from '@/components/orders/MaterialSelector';
+import { ServiceOrderTask, TaskStatus } from '../types/database';
+import ClientLogo from '../components/ui/client-logo';
+import { TaskTimeTracker } from '../components/tasks/TaskTimeTracker';
+import { MaterialSelector } from '../components/orders/MaterialSelector';
 
 
 interface TaskWithOrder extends ServiceOrderTask {

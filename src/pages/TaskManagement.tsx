@@ -1,11 +1,11 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { TaskList } from '@/components/tasks/TaskList';
-import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '../integrations/supabase/client';
+import { TaskList } from '../components/tasks/TaskList';
+import { Card, CardContent } from '../components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '../hooks/use-mobile';
 
 
 const TaskManagement = () => {

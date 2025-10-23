@@ -1,11 +1,11 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Download, Phone } from 'lucide-react';
-import { Budget, BudgetItem } from '@/types/database';
+import { Budget, BudgetItem } from '../../types/database';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../../integrations/supabase/client';
 
 interface BudgetPDFGeneratorProps {
   budget: Budget & { budget_items: BudgetItem[] };

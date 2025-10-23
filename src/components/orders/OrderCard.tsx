@@ -1,8 +1,8 @@
 // src/components/orders/OrderCard.tsx
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import {
   Calendar,
   DollarSign,
@@ -21,18 +21,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+} from '../ui/dialog';
+import { Calendar as CalendarComponent } from '../ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ServiceOrder } from '@/types/database';
-import { useAuth } from '@/contexts/AuthContext';
+import { ServiceOrder } from '../../types/database';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import ClientLogo from '@/components/ui/client-logo';
+import ClientLogo from '../ui/client-logo';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { createInvoice } from '@/services/invoiceService';
+import { supabase } from '../../integrations/supabase/client';
+import { createInvoice } from '../../services/invoiceService';
 import { parseISO, format as formatDateFns } from 'date-fns';
 import { isValid } from 'date-fns';
 
@@ -153,10 +153,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
 
     // Filtra somente itens extras válidos
     const extrasValidos = valoresExtras
-      .filter((item) => item.descricao.trim() !== '' && item.valor.trim() !== '')
+      .filter((item) => item.descricao.trim() !== '')
       .map((item) => ({
         description: item.descricao.trim(),
-        value: parseFloat(item.valor.replace(',', '.')),
+        value: item.valor.trim() !== '' ? parseFloat(item.valor.replace(',', '.')) : 0,
       }));
 
     const totalExtrasSomados = extrasValidos.reduce((acc, item) => acc + item.value, 0);
@@ -250,7 +250,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
     ready_for_pickup: 'Aguardando Retirada',
     awaiting_installation: 'Aguardando Instalação',
     to_invoice: 'Faturar',
-    finalized: 'Finalizado',
+    finalized: 'Concluída',
   }[status] || status);
 
   const formatDate = (dateString: string | Date | null | undefined) => {
@@ -470,7 +470,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
         {/* Form para adicionar valores extras só aparece quando status for 'to_invoice' */}
         {order.status === 'to_invoice' && profile?.role === 'admin' && (
           <div className="mt-4 border rounded p-4 bg-gray-50">
-            <h3 className="font-semibold mb-2">Faturamento</h3>
+            <h3 className="font-semibold mb-2">Observações</h3>
 
             {!mostrarExtras && (
               <button
@@ -483,7 +483,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
                 }}
                 className="mb-3 text-blue-600 underline"
               >
-                + Adicionar Valores Extras
+                + Observações
               </button>
             )}
 
@@ -498,32 +498,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
                       onChange={(e) => atualizarItemExtra(idx, 'descricao', e.target.value)}
                       className="w-full mb-1 border rounded px-2 py-1"
                     />
-                    <input
-                      type="text"
-                      placeholder="Valor (R$)"
-                      value={item.valor}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (/^\d*(?:[.,]\d{0,2})?$/.test(val) || val === '') {
-                          atualizarItemExtra(idx, 'valor', val);
-                        }
-                      }}
-                      className="w-full border rounded px-2 py-1"
-                    />
+                    
                   </div>
                 ))}
 
-                <button
-                  type="button"
-                  onClick={adicionarItemExtra}
-                  className="mb-3 text-blue-600 underline"
-                >
-                  + Adicionar Item Extra
-                </button>
+                
 
-                <p className="font-semibold">
-                  Total Valores Extras: R$ {totalExtras.toFixed(2).replace('.', ',')}
-                </p>
+               
               </>
             )}
 

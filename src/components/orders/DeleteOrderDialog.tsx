@@ -1,8 +1,8 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ServiceOrder } from '@/types/database';
-import { useServiceOrders } from '@/hooks/useServiceOrders';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { ServiceOrder } from '../../types/database';
+import { useServiceOrders } from '../../hooks/useServiceOrders';
 import { AlertTriangle } from 'lucide-react';
 
 interface DeleteOrderDialogProps {

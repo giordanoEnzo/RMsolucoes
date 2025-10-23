@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { ServiceOrderCall } from '@/types/database';
+import { supabase } from '../integrations/supabase/client';
+import { ServiceOrderCall } from '../types/database';
 import { toast } from 'sonner';
 
 export const useServiceOrderCalls = () => {

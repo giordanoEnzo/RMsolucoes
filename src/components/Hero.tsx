@@ -1,5 +1,5 @@
 
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 import { ArrowRight, Wrench, Cog, Zap } from "lucide-react";
 
 export const Hero = () => {

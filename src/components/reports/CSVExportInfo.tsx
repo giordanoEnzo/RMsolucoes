@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Info, FileText, Database, User, Calendar, DollarSign } from 'lucide-react';
 
 interface CSVExportInfoProps {

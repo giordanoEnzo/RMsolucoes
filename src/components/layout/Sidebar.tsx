@@ -5,9 +5,9 @@ import {
   Calculator, Settings, LogOut, CheckSquare, ChevronLeft, ChevronRight,
   BarChart3, Wrench, FileText
 } from 'lucide-react';
-import Logo from '@/assets/Logo_sistema_Oficial.jpg';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
+import Logo from '../../assets/Logo_sistema_Oficial.jpg';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../ui/button';
 
 const Sidebar = () => {
   const { profile, signOut } = useAuth();

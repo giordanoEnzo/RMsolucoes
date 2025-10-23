@@ -1,5 +1,5 @@
 
-import { ServiceOrder, Client } from '@/types';
+import { ServiceOrder, Client } from '../types';
 
 export const mockServiceOrders: ServiceOrder[] = [
   {

@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useServiceOrders, useWorkers } from '@/hooks/useServiceOrders';
-import OrderCard from '@/components/orders/OrderCard';
-import CreateOrderDialog from '@/components/orders/CreateOrderDialog';
-import EditOrderDialog from '@/components/orders/EditOrderDialog';
-import EditOrderDialogManager from '@/components/orders/EditOrderDialogManager';
-import DeleteOrderDialog from '@/components/orders/DeleteOrderDialog';
-import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '../contexts/AuthContext';
+import { useServiceOrders, useWorkers } from '../hooks/useServiceOrders';
+import OrderCard from '../components/orders/OrderCard';
+import CreateOrderDialog from '../components/orders/CreateOrderDialog';
+import EditOrderDialog from '../components/orders/EditOrderDialog';
+import EditOrderDialogManager from '../components/orders/EditOrderDialogManager';
+import DeleteOrderDialog from '../components/orders/DeleteOrderDialog';
+import OrderDetailsDialog from '../components/orders/OrderDetailsDialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Button } from '../components/ui/button';
 import { Plus, Search, Loader2, Filter } from 'lucide-react';
-import { ServiceOrder } from '@/types/database';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { ServiceOrder } from '../types/database';
+import { useIsMobile } from '../hooks/use-mobile';
 
 const Orders = () => {
   const { profile } = useAuth();

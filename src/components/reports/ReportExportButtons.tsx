@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { FileSpreadsheet, FileText, Download } from 'lucide-react';
-import { useReportExport } from '@/hooks/useReportExport';
+import { useReportExport } from '../../hooks/useReportExport';
 
 interface ReportExportButtonsProps {
   data: {

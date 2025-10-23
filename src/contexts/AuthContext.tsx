@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AuthContext, useAuthProvider } from '@/hooks/useAuth';
+import { AuthContext, useAuthProvider } from '../hooks/useAuth';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuthProvider();
@@ -12,4 +12,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export { useAuth } from '@/hooks/useAuth';
+export { useAuth } from '../hooks/useAuth';

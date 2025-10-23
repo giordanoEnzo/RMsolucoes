@@ -4,9 +4,9 @@ import {
   CardContent,
   CardHeader,
   CardTitle
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+} from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import {
   Plus,
   Trash2,
@@ -15,17 +15,17 @@ import {
   FileText,
   Edit
 } from 'lucide-react';
-import { useServiceOrderTasks } from '@/hooks/useServiceOrderTasks';
-import { useRealtimeTasks } from '@/hooks/useRealtimeTasks';
-import { useAuth } from '@/contexts/AuthContext';
-import { CreateTaskDialog } from '@/components/orders/CreateTaskDialog';
+import { useServiceOrderTasks } from '../../hooks/useServiceOrderTasks';
+import { useRealtimeTasks } from '../../hooks/useRealtimeTasks';
+import { useAuth } from '../../contexts/AuthContext';
+import { CreateTaskDialog } from '../orders/CreateTaskDialog';
 import { EditTaskDialog } from './EditTaskDialog';
 import { TaskTimeTracker } from './TaskTimeTracker';
 import { ServiceOrderTimeReport } from './ServiceOrderTimeReport';
-import { TaskStatus } from '@/types/database';
-import { supabase } from '@/integrations/supabase/client';
+import { TaskStatus } from '../../types/database';
+import { supabase } from '../../integrations/supabase/client';
 import { MaterialSelector } from '../orders/MaterialSelector';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { toast } from 'sonner'; // ✅ Exibir feedback de sucesso ou erro
 
 interface TaskListProps {

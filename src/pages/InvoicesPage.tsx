@@ -4,20 +4,20 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+} from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { Plus, Loader2, FileText, Eye } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Invoice } from '@/types/database';
+import { supabase } from '../integrations/supabase/client';
+import { Invoice } from '../types/database';
 //import NewInvoiceDialog from '@/components/invoices/NewInvoiceDialog';
-import { InvoicePDFGenerator } from '@/components/invoices/InvoicePDFGenerator';
-import { InvoiceViewDialog } from '@/components/invoices/InvoiceViewDialog';
-import { getInvoiceItemsByOrderIds } from '@/utils/invoiceUtils';
-import { testInvoiceItems } from '@/utils/testInvoiceItems';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useClients } from '@/hooks/useClients';
+import { InvoicePDFGenerator } from '../components/invoices/InvoicePDFGenerator';
+import { InvoiceViewDialog } from '../components/invoices/InvoiceViewDialog';
+import { getInvoiceItemsByOrderIds } from '../utils/invoiceUtils';
+import { testInvoiceItems } from '../utils/testInvoiceItems';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { useClients } from '../hooks/useClients';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';

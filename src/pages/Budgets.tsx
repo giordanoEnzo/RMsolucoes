@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 import { Plus, FileText, ShoppingCart, Trash2} from 'lucide-react';
-import { useBudgets } from '@/hooks/useBudgets';
-import CreateBudgetDialog from '@/components/budgets/CreateBudgetDialog';
-import BudgetDetailsDialog from '@/components/budgets/BudgetDetailsDialog';
-import EditBudgetDialog from '@/components/budgets/EditBudgetDialog';
-import { BudgetFilters } from '@/components/budgets/BudgetFilters';
-import { BudgetPDFGenerator } from '@/components/budgets/BudgetPDFGenerator';
-import { supabase } from '@/integrations/supabase/client';
+import { useBudgets } from '../hooks/useBudgets';
+import CreateBudgetDialog from '../components/budgets/CreateBudgetDialog';
+import BudgetDetailsDialog from '../components/budgets/BudgetDetailsDialog';
+import EditBudgetDialog from '../components/budgets/EditBudgetDialog';
+import { BudgetFilters } from '../components/budgets/BudgetFilters';
+import { BudgetPDFGenerator } from '../components/budgets/BudgetPDFGenerator';
+import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
-import { testBudgetTransfer, addTestItemsToBudget } from '@/utils/testBudgetTransfer';
+import { testBudgetTransfer, addTestItemsToBudget } from '../utils/testBudgetTransfer';
 
 const Budgets = () => {
   const [selectedBudget, setSelectedBudget] = useState<any>(null);

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
 import { FileText, Download, X, Calendar, User, DollarSign, Clock, Package, Loader2 } from 'lucide-react';
-import { Invoice } from '@/types/database';
+import { Invoice } from '../../types/database';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getInvoiceItems, InvoiceItem } from '@/utils/invoiceUtils';
+import { getInvoiceItems, InvoiceItem } from '../../utils/invoiceUtils';
 
 interface InvoiceViewDialogProps {
   invoice: Invoice;

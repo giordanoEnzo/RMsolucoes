@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { Play, Square, Clock, User, FileText } from 'lucide-react';
-import { useTimeTracking } from '@/hooks/useServiceOrderTasks';
-import { useAuth } from '@/contexts/AuthContext';
-import { TaskTimeLog } from '@/types/database';
+import { useTimeTracking } from '../../hooks/useServiceOrderTasks';
+import { useAuth } from '../../contexts/AuthContext';
+import { TaskTimeLog } from '../../types/database';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface TaskTimeTrackerProps {

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { FileText, Trash2 } from 'lucide-react';
 import { InvoicePDFGenerator } from './InvoicePDFGenerator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { deleteInvoice, InvoiceData } from '@/services/invoiceService';
+import { deleteInvoice, InvoiceData } from '../../services/invoiceService';
 
 interface InvoiceTableProps {
   invoices: InvoiceData[];

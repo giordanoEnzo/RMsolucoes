@@ -1,5 +1,5 @@
 
-import { OrderStatus, Urgency } from '@/types';
+import { OrderStatus, Urgency } from '../types';
 
 export const getStatusLabel = (status: OrderStatus): string => {
   const statusLabels: Record<OrderStatus, string> = {

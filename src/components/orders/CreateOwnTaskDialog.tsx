@@ -1,18 +1,18 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Calendar } from '../ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
-import { useServiceOrderTasks } from '@/hooks/useServiceOrderTasks';
-import { useAuth } from '@/hooks/useAuth';
-import { TaskPriority } from '@/types/database';
+import { useServiceOrderTasks } from '../../hooks/useServiceOrderTasks';
+import { useAuth } from '../../hooks/useAuth';
+import { TaskPriority } from '../../types/database';
 
 interface CreateOwnTaskDialogProps {
   serviceOrderId: string;

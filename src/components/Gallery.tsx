@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 
 export const Gallery = () => {
   const [selectedImage, setSelectedImage] = useState<number | null>(null);

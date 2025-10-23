@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Client } from '@/types/database';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRealtimeClients } from '@/hooks/useRealtimeClients';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '../integrations/supabase/client';
+import { Client } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
+import { useRealtimeClients } from '../hooks/useRealtimeClients';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { UserCircle, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -1,11 +1,14 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Download, Phone } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { getInvoiceItems } from '@/utils/invoiceUtils';
+import { supabase } from '../../integrations/supabase/client';
+import { getInvoiceItems } from '../../utils/invoiceUtils';
+import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 
 const logopath = '/logonum.png';
 const assinaturaPath = '/AssinaturaMarcioOficial.png';
@@ -70,6 +73,18 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
 export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
   const [invoiceItems, setInvoiceItems] = React.useState<any[]>([]);
   const [itemsLoading, setItemsLoading] = React.useState(true);
+  
+  // Estados para condições de pagamento
+  const [paymentConditions, setPaymentConditions] = React.useState({
+    pix: true,
+    transferencia: true,
+    dinheiro: true,
+    cheque: true,
+    cartao: false,
+  });
+  
+  // Estado para observações
+  const [observations, setObservations] = React.useState('');
 
   React.useEffect(() => {
     const loadItems = async () => {
@@ -192,9 +207,9 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
       ...(invoice.extras ?? []).map((extra) => [
         extra.description || 'Extra sem descrição',
         'und.',
-        `R$ ${(extra.value ?? 0).toFixed(2)}`,
+        `R$ ${Number(extra.value ?? 0).toFixed(2)}`,
         '1',
-        `R$ ${(extra.value ?? 0).toFixed(2)}`
+        `R$ ${Number(extra.value ?? 0).toFixed(2)}`
       ])
     );
 
@@ -237,6 +252,22 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     doc.text(`TOTAL: R$ ${total.toFixed(2)}`, pageWidth - 20, y, { align: 'right' });
     y += 10;
 
+    // Observações (se houver)
+    if (observations.trim() !== '') {
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('Observações', 20, y);
+      y += 6;
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      
+      // Quebrar texto em múltiplas linhas se necessário
+      const obsLines = doc.splitTextToSize(observations, pageWidth - 40);
+      doc.text(obsLines, 20, y);
+      y += (obsLines.length * 5) + 10;
+    }
+
     // Pagamento e dados bancários
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
@@ -245,10 +276,26 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
 
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
-    doc.text('Transferência bancária, dinheiro, cheque ou pix.', 20, y);
-    y += 6;
-    doc.text('PIX: 19957948000168', 20, y);
-    y += 10;
+    
+    // Criar texto de condições de pagamento baseado nas seleções
+    const condicoes: string[] = [];
+    if (paymentConditions.pix) condicoes.push('PIX');
+    if (paymentConditions.transferencia) condicoes.push('transferência bancária');
+    if (paymentConditions.dinheiro) condicoes.push('dinheiro');
+    if (paymentConditions.cheque) condicoes.push('cheque');
+    if (paymentConditions.cartao) condicoes.push('cartão');
+    
+    if (condicoes.length > 0) {
+      const textoCondicoes = condicoes.join(', ').replace(/,([^,]*)$/, ' ou$1');
+      doc.text(`Formas de pagamento: ${textoCondicoes}.`, 20, y);
+      y += 6;
+    }
+    
+    if (paymentConditions.pix) {
+      doc.text('PIX: 19957948000168', 20, y);
+      y += 6;
+    }
+    y += 4;
 
     doc.setFont(undefined, 'bold');
     doc.text('Dados Bancários', 20, y);
@@ -359,6 +406,72 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
               (invoice.extras?.reduce((sum, e) => sum + (e.value ?? 0), 0) ?? 0)
             ).toFixed(2)}
           </p>
+        </div>
+
+        <div className="mt-6 border-t pt-4">
+          <h3 className="font-semibold mb-3 text-sm">Observações</h3>
+          <Textarea
+            placeholder="Digite aqui observações que aparecerão na fatura..."
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            className="min-h-[80px] resize-y"
+          />
+        </div>
+
+        <div className="mt-4 border-t pt-4">
+          <h3 className="font-semibold mb-3 text-sm">Formas de Pagamento</h3>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="pix"
+                checked={paymentConditions.pix}
+                onCheckedChange={(checked) => 
+                  setPaymentConditions(prev => ({ ...prev, pix: checked as boolean }))
+                }
+              />
+              <Label htmlFor="pix" className="text-sm cursor-pointer">PIX</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="transferencia"
+                checked={paymentConditions.transferencia}
+                onCheckedChange={(checked) => 
+                  setPaymentConditions(prev => ({ ...prev, transferencia: checked as boolean }))
+                }
+              />
+              <Label htmlFor="transferencia" className="text-sm cursor-pointer">Transferência Bancária</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="dinheiro"
+                checked={paymentConditions.dinheiro}
+                onCheckedChange={(checked) => 
+                  setPaymentConditions(prev => ({ ...prev, dinheiro: checked as boolean }))
+                }
+              />
+              <Label htmlFor="dinheiro" className="text-sm cursor-pointer">Dinheiro</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="cheque"
+                checked={paymentConditions.cheque}
+                onCheckedChange={(checked) => 
+                  setPaymentConditions(prev => ({ ...prev, cheque: checked as boolean }))
+                }
+              />
+              <Label htmlFor="cheque" className="text-sm cursor-pointer">Cheque</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="cartao"
+                checked={paymentConditions.cartao}
+                onCheckedChange={(checked) => 
+                  setPaymentConditions(prev => ({ ...prev, cartao: checked as boolean }))
+                }
+              />
+              <Label htmlFor="cartao" className="text-sm cursor-pointer">Cartão</Label>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">

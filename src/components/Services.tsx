@@ -1,6 +1,6 @@
 
 import { Wrench, Zap, Cog, Shield, Settings, Home } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "./ui/card";
 
 export const Services = () => {
   const services = [

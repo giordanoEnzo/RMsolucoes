@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Client } from '@/types/database';
+import { supabase } from '../integrations/supabase/client';
+import { Client } from '../types/database';
 
 export const useClients = () => {
   const fetchClients = async (): Promise<Client[]> => {

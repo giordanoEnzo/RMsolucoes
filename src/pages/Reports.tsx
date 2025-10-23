@@ -1,23 +1,23 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRealtimeReports } from '@/hooks/useRealtimeReports';
-import { useDateRange } from '@/hooks/useDateRange';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '../integrations/supabase/client';
+import { useAuth } from '../contexts/AuthContext';
+import { useRealtimeReports } from '../hooks/useRealtimeReports';
+import { useDateRange } from '../hooks/useDateRange';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FileText, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
-import EmployeeReports from '@/components/reports/EmployeeReports';
+import EmployeeReports from '../components/reports/EmployeeReports';
 
 // Cores para os gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
-import ServiceReports from '@/components/reports/ServiceReports';
-import DateRangeFilter from '@/components/reports/DateRangeFilter';
-import ReportExportButtons from '@/components/reports/ReportExportButtons';
-import CSVExportInfo from '@/components/reports/CSVExportInfo';
-import { useReportExport } from '@/hooks/useReportExport';
+import ServiceReports from '../components/reports/ServiceReports';
+import DateRangeFilter from '../components/reports/DateRangeFilter';
+import ReportExportButtons from '../components/reports/ReportExportButtons';
+import CSVExportInfo from '../components/reports/CSVExportInfo';
+import { useReportExport } from '../hooks/useReportExport';
 
 const Reports = () => {
   const { profile } = useAuth();

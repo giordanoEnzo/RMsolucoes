@@ -1,9 +1,9 @@
 // src/components/Layout.tsx
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+import { useIsMobile } from '../../hooks/use-mobile';
+import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { Button } from '../ui/button';
 import { Menu } from 'lucide-react';
 
 interface LayoutProps {

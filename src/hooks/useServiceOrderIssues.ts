@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../integrations/supabase/client';
 
 export async function createServiceOrderIssue(service_order_id: string, reason: string) {
   const { error } = await supabase
