@@ -1,17 +1,18 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { Profile } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Users, Plus, Edit, Trash2, UserCheck } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+
+import EmployeesTable from '../components/employees/EmployeesTable';
+import EmployeeViewDialog from '../components/employees/EmployeeViewDialog';
 
 const Employees = () => {
   const { profile, createUser } = useAuth();
@@ -19,6 +20,7 @@ const Employees = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Profile | null>(null);
+  const [viewEmployee, setViewEmployee] = useState<Profile | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -31,7 +33,7 @@ const Employees = () => {
     role: 'worker' as 'admin' | 'manager' | 'worker'
   });
 
-  const { data: employees = [], isLoading, refetch } = useQuery({
+  const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -86,11 +88,11 @@ const Employees = () => {
       }
 
       const result = await createUser(data.email, data.password, data.name, data.role);
-      
+
       if (result.error) {
         throw result.error;
       }
-      
+
       return result;
     },
     onSuccess: () => {
@@ -110,7 +112,7 @@ const Employees = () => {
       console.log('=== DELETE EMPLOYEE MUTATION ===');
       console.log('Tentando excluir funcionário ID:', id);
       console.log('Usuário atual:', profile);
-      
+
       // Verificar se há ordens de serviço associadas
       const { data: orders, error: ordersError } = await supabase
         .from('service_orders')
@@ -153,14 +155,14 @@ const Employees = () => {
 
       // Tentar excluir o funcionário
       console.log('Nenhuma associação encontrada, prosseguindo com exclusão...');
-      
+
       const { data: deletedProfile, error: deleteError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', id)
         .select()
         .single();
-      
+
       if (deleteError) {
         console.error('Erro na exclusão do profile:', deleteError);
         console.error('Código do erro:', deleteError.code);
@@ -209,7 +211,7 @@ const Employees = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (editingEmployee) {
       updateEmployeeMutation.mutate({ id: editingEmployee.id, ...formData });
     }
@@ -217,7 +219,7 @@ const Employees = () => {
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!profile) {
       toast.error('Usuário não autenticado');
       return;
@@ -241,9 +243,13 @@ const Employees = () => {
     setIsDialogOpen(true);
   };
 
+  const handleView = (employee: Profile) => {
+    setViewEmployee(employee);
+  };
+
   const handleDelete = (employee: Profile) => {
     const confirmMessage = `Tem certeza que deseja excluir o funcionário ${employee.name}?\n\nEsta ação não pode ser desfeita.\n\nAtenção: Se houver ordens de serviço ou tarefas associadas, a exclusão não será permitida.`;
-    
+
     if (window.confirm(confirmMessage)) {
       console.log('=== INICIANDO EXCLUSÃO ===');
       console.log('Funcionário a ser excluído:', employee.name, employee.id);
@@ -254,26 +260,26 @@ const Employees = () => {
 
   const getAvailableRoles = () => {
     if (!profile) return [];
-    
+
     if (profile.role === 'admin') {
       return [
         { value: 'manager', label: 'Gerente' },
         { value: 'worker', label: 'Operário' }
       ];
     }
-    
+
     if (profile.role === 'manager') {
       return [
         { value: 'worker', label: 'Operário' }
       ];
     }
-    
+
     return [];
   };
 
   const getEditableRoles = () => {
     if (!profile) return [];
-    
+
     if (profile.role === 'admin') {
       return [
         { value: 'admin', label: 'Administrador' },
@@ -281,46 +287,46 @@ const Employees = () => {
         { value: 'worker', label: 'Operário' }
       ];
     }
-    
+
     if (profile.role === 'manager') {
       return [
         { value: 'manager', label: 'Gerente' },
         { value: 'worker', label: 'Operário' }
       ];
     }
-    
+
     return [];
   };
 
   const canDeleteEmployee = (employee: Profile) => {
     if (!profile) return false;
-    
+
     // Admin pode deletar qualquer um exceto outros admins
     if (profile.role === 'admin') {
       return employee.role !== 'admin';
     }
-    
+
     // Manager pode deletar apenas workers
     if (profile.role === 'manager') {
       return employee.role === 'worker';
     }
-    
+
     return false;
   };
 
   const canEditEmployee = (employee: Profile) => {
     if (!profile) return false;
-    
+
     // Admin pode editar qualquer um
     if (profile.role === 'admin') {
       return true;
     }
-    
+
     // Manager pode editar apenas workers
     if (profile.role === 'manager') {
       return employee.role === 'worker';
     }
-    
+
     return false;
   };
 
@@ -399,9 +405,9 @@ const Employees = () => {
                   </div>
                   <div>
                     <Label htmlFor="create-role">Perfil</Label>
-                    <Select 
-                      value={createFormData.role} 
-                      onValueChange={(value: 'admin' | 'manager' | 'worker') => 
+                    <Select
+                      value={createFormData.role}
+                      onValueChange={(value: 'admin' | 'manager' | 'worker') =>
                         setCreateFormData({ ...createFormData, role: value })
                       }
                     >
@@ -417,8 +423,8 @@ const Employees = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full"
                     disabled={createEmployeeMutation.isPending}
                   >
@@ -474,8 +480,8 @@ const Employees = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full"
                   disabled={updateEmployeeMutation.isPending}
                 >
@@ -489,12 +495,12 @@ const Employees = () => {
 
       <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-sm text-amber-800">
-          <strong>Importante:</strong> Administradores devem ser cadastrados exclusivamente via banco de dados. 
+          <strong>Importante:</strong> Administradores devem ser cadastrados exclusivamente via banco de dados.
           {profile?.role === 'admin' && ' Você pode cadastrar Gerentes e Operários através desta interface.'}
           {profile?.role === 'manager' && ' Você pode cadastrar apenas Operários através desta interface.'}
         </p>
         <p className="text-sm text-amber-700 mt-2">
-          <strong>Nota sobre exclusão:</strong> Funcionários com ordens de serviço ou tarefas associadas não podem ser excluídos. 
+          <strong>Nota sobre exclusão:</strong> Funcionários com ordens de serviço ou tarefas associadas não podem ser excluídos.
           Remova ou transfira as associações antes de tentar excluir.
         </p>
       </div>
@@ -505,60 +511,21 @@ const Employees = () => {
           <p className="mt-4 text-gray-600">Carregando funcionários...</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {employees.map((employee) => (
-            <Card key={employee.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-gray-500" />
-                  <CardTitle className="text-lg">{employee.name}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <UserCheck className="h-4 w-4" />
-                    <span>{employee.email}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      employee.role === 'admin' ? 'bg-red-100 text-red-800' :
-                      employee.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {employee.role === 'admin' ? 'Administrador' :
-                       employee.role === 'manager' ? 'Gerente' : 'Operário'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  {canEditEmployee(employee) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(employee)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                  )}
-                  {canDeleteEmployee(employee) && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(employee)}
-                      disabled={deleteEmployeeMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      {deleteEmployeeMutation.isPending ? 'Excluindo...' : 'Excluir'}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <EmployeesTable
+          employees={employees}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onView={handleView}
+          canEdit={canEditEmployee}
+          canDelete={canDeleteEmployee}
+        />
       )}
+
+      <EmployeeViewDialog
+        open={!!viewEmployee}
+        onOpenChange={(open) => !open && setViewEmployee(null)}
+        employee={viewEmployee}
+      />
     </div>
   );
 };
