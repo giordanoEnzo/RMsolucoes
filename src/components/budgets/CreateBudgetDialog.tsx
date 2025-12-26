@@ -8,9 +8,10 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Client, Service, BudgetItem } from '../../types/database';
+import ClientSelectionDialog from '../clients/ClientSelectionDialog';
 
 interface CreateBudgetDialogProps {
   open: boolean;
@@ -30,6 +31,8 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
     valid_until: '',
   });
 
+  const [isClientSelectionOpen, setIsClientSelectionOpen] = useState(false);
+
   const [items, setItems] = useState<Partial<BudgetItem>[]>([{
     service_name: '',
     description: '',
@@ -46,6 +49,8 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
   const [editServiceData, setEditServiceData] = useState<{ id: string; name: string; default_price: number } | null>(null);
 
   const [isCreatingClient, setIsCreatingClient] = useState(false);
+
+  // ... (keeping existing helper functions)
 
   const handleCreateService = async (index: number) => {
     try {
@@ -195,6 +200,16 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
     }
   };
 
+  const handleClientSelectFromDialog = (client: Client) => {
+    setFormData({
+      ...formData,
+      client_id: client.id,
+      client_name: client.name,
+      client_contact: client.contact,
+      client_address: client.address,
+    });
+  };
+
   const handleServiceSelect = (index: number, serviceName: string) => {
     const service = services.find(s => s.name === serviceName);
     const newItems = [...items];
@@ -290,18 +305,35 @@ const CreateBudgetDialog: React.FC<CreateBudgetDialogProps> = ({ open, onOpenCha
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cliente</Label>
-                <Select onValueChange={handleClientSelect} value={formData.client_id || undefined}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new_client">+ Cadastrar novo cliente</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select onValueChange={handleClientSelect} value={formData.client_id || undefined}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new_client">+ Cadastrar novo cliente</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsClientSelectionOpen(true)}
+                    title="Buscar cliente"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+
+              <ClientSelectionDialog
+                open={isClientSelectionOpen}
+                onOpenChange={setIsClientSelectionOpen}
+                onSelect={handleClientSelectFromDialog}
+              />
               <div>
                 <Label>Válido até</Label>
                 <Input

@@ -9,8 +9,9 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import ClientSelectionDialog from '../clients/ClientSelectionDialog';
 
 interface CreateOrderDialogProps {
   open: boolean;
@@ -68,6 +69,8 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
 
   const { workers } = useWorkers();
 
+  const [isClientSelectionOpen, setIsClientSelectionOpen] = useState(false);
+
   const handleClientSelect = (clientId: string) => {
     if (clientId === 'new_client') {
       setIsCreatingClient(true);
@@ -92,6 +95,17 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
         });
       }
     }
+  };
+
+  const handleClientSelectFromDialog = (client: any) => {
+    setFormData({
+      ...formData,
+      client_id: client.id,
+      client_name: client.name,
+      client_contact: client.contact,
+      client_address: client.address,
+      client_zipcode: client.cep || '',
+    });
   };
 
   const handleServiceSelect = (index: number, name: string) => {
@@ -164,7 +178,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           contact: orderData.client_contact,
           address: orderData.client_address,
           cep: orderData.client_zipcode,
-          
+
 
         }).select().single();
 
@@ -175,9 +189,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
       const { data: orderNumber, error: numError } = await supabase.rpc('generate_order_number');
       if (numError) throw numError;
 
-      
 
-      
       const { data: order, error: orderError } = await supabase.from('service_orders').insert({
         order_number: orderNumber,
         client_id: clientId,
@@ -264,16 +276,33 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Cliente</Label>
-              <Select onValueChange={handleClientSelect}>
-                <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new_client">+ Novo Cliente</SelectItem>
-                  {clients.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.client_id} onValueChange={handleClientSelect}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new_client">+ Novo Cliente</SelectItem>
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsClientSelectionOpen(true)}
+                  title="Buscar cliente"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+
+            <ClientSelectionDialog
+              open={isClientSelectionOpen}
+              onOpenChange={setIsClientSelectionOpen}
+              onSelect={handleClientSelectFromDialog}
+            />
             <div>
               <Label>Prazo de Conclusão</Label>
               <Input
