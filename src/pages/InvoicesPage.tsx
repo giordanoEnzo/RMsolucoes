@@ -6,97 +6,103 @@ import {
   CardTitle,
 } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Plus, Loader2, FileText, Eye } from 'lucide-react';
+import { Loader2, FileText, Eye, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { Invoice } from '../types/database';
-//import NewInvoiceDialog from '@/components/invoices/NewInvoiceDialog';
 import { InvoicePDFGenerator } from '../components/invoices/InvoicePDFGenerator';
 import { InvoiceViewDialog } from '../components/invoices/InvoiceViewDialog';
-import { getInvoiceItemsByOrderIds } from '../utils/invoiceUtils';
-import { testInvoiceItems } from '../utils/testInvoiceItems';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { useClients } from '../hooks/useClients';
-import { format } from 'date-fns';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toast } from 'sonner';
 
-// Função para formatar data do formato ISO (YYYY-MM-DD) para DD/MM/YYYY
-const formatDateForDisplay = (dateString: string): string => {
-  if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
-};
-
-// Função para validar se a data está no formato correto
-const isValidDate = (dateString: string): boolean => {
-  if (!dateString) return false;
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
-};
+const months = [
+  { value: '0', label: 'Janeiro' },
+  { value: '1', label: 'Fevereiro' },
+  { value: '2', label: 'Março' },
+  { value: '3', label: 'Abril' },
+  { value: '4', label: 'Maio' },
+  { value: '5', label: 'Junho' },
+  { value: '6', label: 'Julho' },
+  { value: '7', label: 'Agosto' },
+  { value: '8', label: 'Setembro' },
+  { value: '9', label: 'Outubro' },
+  { value: '10', label: 'Novembro' },
+  { value: '11', label: 'Dezembro' },
+];
 
 const fetchInvoices = async (filters: {
   clientName: string;
-  startDate: string;
-  endDate: string;
+  month: string;
+  year: string;
 }): Promise<Invoice[]> => {
+  const startDate = startOfMonth(new Date(parseInt(filters.year), parseInt(filters.month))).toISOString();
+  const endDate = endOfMonth(new Date(parseInt(filters.year), parseInt(filters.month))).toISOString();
+
   let query = supabase
     .from('invoices')
     .select('*')
     .order('start_date', { ascending: false });
 
   if (filters.clientName) query = query.ilike('client_name', `%${filters.clientName}%`);
-  if (filters.startDate) query = query.gte('start_date', filters.startDate);
-  if (filters.endDate) query = query.lte('end_date', filters.endDate);
+
+  // Filter by date range of the selected month
+  query = query.gte('created_at', startDate);
+  query = query.lte('created_at', endDate);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data || [];
 };
 
-const groupInvoicesByClientAndMonth = (invoices: Invoice[]) => {
-  const groups: Record<string, Record<string, Invoice[]>> = {};
-
-  invoices.forEach((invoice) => {
-    const client = invoice.client_name || 'Sem Cliente';
-    const date = new Date(invoice.start_date || invoice.created_at || '');
-    const month = format(date, 'MMMM yyyy', { locale: ptBR });
-
-    if (!groups[client]) groups[client] = {};
-    if (!groups[client][month]) groups[client][month] = [];
-
-    groups[client][month].push(invoice);
-  });
-
-  return groups;
-};
-
 const InvoicesPage: React.FC = () => {
-  const [openDialog, setOpenDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
-  const [clientName, setClientName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [appliedFilters, setAppliedFilters] = useState({
-    clientName: '',
-    startDate: '',
-    endDate: '',
-  });
 
-  const { clients = [] } = useClients();
+  // Filters State
+  const [clientName, setClientName] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().getMonth().toString());
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  // Generate year options (current year - 5 to current year + 1)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 7 }, (_, i) => (currentYear - 5 + i).toString());
 
   const {
     data: invoices = [],
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['invoices', appliedFilters],
-    queryFn: () => fetchInvoices(appliedFilters),
+    queryKey: ['invoices', clientName, selectedMonth, selectedYear],
+    queryFn: () => fetchInvoices({ clientName, month: selectedMonth, year: selectedYear }),
   });
 
-  const grouped = groupInvoicesByClientAndMonth(invoices);
+  const handleDeleteInvoice = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta fatura?')) return;
+
+    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    if (error) {
+      alert('Erro ao excluir fatura: ' + error.message);
+    } else {
+      refetch();
+    }
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -106,94 +112,54 @@ const InvoicesPage: React.FC = () => {
 
       {/* Filtros */}
       <Card className="p-4">
-        {(appliedFilters.clientName || appliedFilters.startDate || appliedFilters.endDate) && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="text-sm text-blue-800">
-              <strong>Filtros ativos:</strong>
-              <div className="mt-1 space-y-1">
-                {appliedFilters.clientName && (
-                  <div>• Cliente: <span className="font-medium">"{appliedFilters.clientName}"</span></div>
-                )}
-                {appliedFilters.startDate && (
-                  <div>• Data início: <span className="font-medium">{formatDateForDisplay(appliedFilters.startDate)}</span></div>
-                )}
-                {appliedFilters.endDate && (
-                  <div>• Data fim: <span className="font-medium">{formatDateForDisplay(appliedFilters.endDate)}</span></div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label>Nome do Cliente</Label>
             <Input
               type="text"
-              placeholder="Digite o nome do cliente..."
+              placeholder="Buscar por cliente..."
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  // Validar se a data final não é menor que a inicial
-                  if (startDate && endDate && startDate > endDate) {
-                    toast.error('A data final não pode ser menor que a data inicial');
-                    return;
-                  }
-                  setAppliedFilters({ clientName, startDate, endDate });
-                }
-              }}
             />
           </div>
           <div>
-            <Label>Data Início</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <Label>Mês</Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <Label>Data Fim</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+            <Label>Ano</Label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-        <div className="flex gap-2 mt-4">
-          <Button 
-            onClick={() => {
-              // Validar se a data final não é menor que a inicial
-              if (startDate && endDate && startDate > endDate) {
-                toast.error('A data final não pode ser menor que a data inicial');
-                return;
-              }
-              setAppliedFilters({ clientName, startDate, endDate });
-            }}
-            className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
-          >
-            Aplicar Filtros
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => {
-              setClientName('');
-              setStartDate('');
-              setEndDate('');
-              setAppliedFilters({ clientName: '', startDate: '', endDate: '' });
-            }}
-          >
-            Resetar Filtros
-          </Button>
         </div>
       </Card>
 
-      {/* Lista Agrupada */}
+      {/* Tabela de Faturas */}
       <Card className="shadow-md border border-gray-200">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-muted-foreground">
-            Lista de Faturas {invoices.length > 0 && `(${invoices.length} encontrada${invoices.length !== 1 ? 's' : ''})`}
+            Lista de Faturas {invoices.length > 0 && `(${invoices.length})`}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -204,80 +170,69 @@ const InvoicesPage: React.FC = () => {
             </div>
           ) : invoices.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-6">
-              Nenhuma fatura encontrada.
+              Nenhuma fatura encontrada para este período.
             </p>
           ) : (
-            Object.entries(grouped).map(([clientName, months]) => (
-              <div key={clientName} className="mb-6">
-                <h2 className="text-xl font-bold mb-2">{clientName}</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome do Cliente</TableHead>
+                  <TableHead>Número da Fatura</TableHead>
+                  <TableHead>Data de Faturamento</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => {
+                  const ordersArray = Array.isArray(invoice.orders) ? invoice.orders : [];
+                  const invoiceNumber = ordersArray.map(o => o.order_number).join(', ') || 'N/A';
+                  const billingDate = invoice.created_at ? format(parseISO(invoice.created_at), 'dd/MM/yyyy') : '-';
 
-                {Object.entries(months).map(([month, invoices]) => (
-                  <div key={month} className="mb-4 ml-4">
-                    <h3 className="text-md font-semibold text-muted-foreground mb-2">{month}</h3>
+                  return (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-medium">{invoice.client_name}</TableCell>
+                      <TableCell>{invoiceNumber}</TableCell>
+                      <TableCell>{billingDate}</TableCell>
+                      <TableCell className="text-right flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setViewingInvoice(invoice)}
+                          className="border-[#2D3D2C] text-[#2D3D2C] hover:bg-[#2D3D2C] hover:text-white h-8 w-8 p-0"
+                          title="Visualizar"
+                        >
+                          <Eye size={16} />
+                        </Button>
 
-                    <div className="space-y-3">
-                      {invoices.map((invoice) => {
-                        const ordersArray = Array.isArray(invoice.orders) ? invoice.orders : [];
-                        const totalValue =
-                          ordersArray.reduce((sum, o) => sum + (o.sale_value ?? 0), 0) +
-                          (Array.isArray(invoice.extras)
-                            ? invoice.extras.reduce((sum, e) => sum + (e.value ?? 0), 0)
-                            : 0);
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedInvoice(invoice)}
+                          className="bg-[#2D3D2C] hover:bg-[#374C36] text-white h-8 w-8 p-0"
+                          title="Gerar PDF"
+                        >
+                          <FileText size={16} />
+                        </Button>
 
-                        return (
-                          <div
-                            key={invoice.id}
-                            className="flex justify-between items-center border-b pb-2"
-                          >
-                            <div>
-                              <p className="font-semibold">
-                                Fatura {(Array.isArray(invoice.orders) ? invoice.orders : []).map(o => o.order_number).join(', ') || 'N/A'}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Total: R$ {totalValue.toFixed(2)} | Tempo: {invoice.total_time?.toFixed(2)}h
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setViewingInvoice(invoice)}
-                                className="border-[#2D3D2C] text-[#2D3D2C] hover:bg-[#2D3D2C] hover:text-white"
-                              >
-                                <Eye size={16} className="mr-1" /> Visualizar
-                              </Button>
-                              
-                              <Button
-                                size="sm"
-                                onClick={() => setSelectedInvoice(invoice)}
-                                className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
-                              >
-                                <FileText size={16} className="mr-1" /> Gerar PDF
-                              </Button>
-                              
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() =>
-                                  window.confirm('Tem certeza que deseja excluir esta fatura?') &&
-                                  handleDeleteInvoice(invoice.id, refetch)
-                                }
-                              >
-                                Excluir
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteInvoice(invoice.id)}
+                          className="h-8 w-8 p-0"
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
+      {/* Dialogs */}
       {viewingInvoice && (
         <InvoiceViewDialog
           invoice={viewingInvoice}
@@ -314,16 +269,6 @@ const InvoicesPage: React.FC = () => {
       )}
     </div>
   );
-};
-
-const handleDeleteInvoice = async (id: number, refetch: () => void) => {
-  const { error } = await supabase.from('invoices').delete().eq('id', id);
-  if (error) {
-    alert('Erro ao excluir fatura: ' + error.message);
-  } else {
-    alert('Fatura excluída com sucesso!');
-    refetch();
-  }
 };
 
 export default InvoicesPage;
