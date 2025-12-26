@@ -11,7 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Button } from '../components/ui/button';
-import { Plus, Search, Loader2, Filter, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, Loader2, Filter, Eye, EyeOff, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Calendar } from '../components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { format, isSameDay, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '../lib/utils';
 import { ServiceOrder } from '../types/database';
 import { useIsMobile } from '../hooks/use-mobile';
 
@@ -30,6 +35,7 @@ const Orders = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder & { assigned_worker?: { name: string } } | null>(null);
   const [showFaturado, setShowFaturado] = useState(false);
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
   const getFilteredOrders = () => {
     let filteredOrders = orders;
@@ -47,16 +53,30 @@ const Orders = () => {
 
     // Filtrar por termo de busca
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filteredOrders = filteredOrders.filter(order =>
-        order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.service_description.toLowerCase().includes(searchTerm.toLowerCase())
+        order.order_number.toLowerCase().includes(searchLower) ||
+        order.client_name.toLowerCase().includes(searchLower) ||
+        order.service_description.toLowerCase().includes(searchLower)
       );
+    }
+
+    // Filtrar por data
+    if (dateFilter) {
+      filteredOrders = filteredOrders.filter(order => {
+        if (!order.opening_date) return false;
+        return isSameDay(parseISO(order.opening_date), dateFilter);
+      });
     }
 
     // Filtrar por status
     if (statusFilter !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
+      filteredOrders = filteredOrders.filter(order => {
+        if (statusFilter === 'pending') {
+          return order.status === 'pending' || (order.status as string) === 'pendente';
+        }
+        return order.status === statusFilter;
+      });
     }
 
     // Filtrar por prioridade
@@ -167,26 +187,58 @@ const Orders = () => {
               {showFaturado ? <Eye size={20} /> : <EyeOff size={20} />}
             </Button>
 
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full md:w-[240px] justify-start text-left font-normal",
+                    !dateFilter && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFilter ? format(dateFilter, "PPP", { locale: ptBR }) : <span>Filtrar por data</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFilter}
+                  onSelect={setDateFilter}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {dateFilter && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setDateFilter(undefined)}
+                title="Limpar data"
+              >
+                <X size={16} />
+              </Button>
+            )}
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className={isMobile ? 'w-full' : 'w-48'}>
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="on_hold">Em Espera</SelectItem>
-                  <SelectItem value="stopped">Paralisado</SelectItem>
-                  <SelectItem value="quality_control">Controle de Qualidade</SelectItem>
-                  <SelectItem value="ready_for_pickup">Aguardando Retirada</SelectItem>
-                  <SelectItem value="awaiting_installation">Aguardando Instalação</SelectItem>
-                  <SelectItem value="to_invoice">Faturar</SelectItem>
-                  <SelectItem value="invoiced">Faturada</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="in_progress">Em Andamento</SelectItem>
+                <SelectItem value="on_hold">Em Espera</SelectItem>
+                <SelectItem value="stopped">Paralisado</SelectItem>
+                <SelectItem value="quality_control">Controle de Qualidade</SelectItem>
+                <SelectItem value="ready_for_pickup">Aguardando Retirada</SelectItem>
+                <SelectItem value="awaiting_installation">Aguardando Instalação</SelectItem>
+                <SelectItem value="to_invoice">Faturar</SelectItem>
+                <SelectItem value="invoiced">Faturada</SelectItem>
+                <SelectItem value="completed">Concluído</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
               </SelectContent>
             </Select>
 
