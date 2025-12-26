@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { TablePagination } from '../ui/TablePagination';
 
 // Dialogs
 import InvoiceGenerationDialog from './InvoiceGenerationDialog';
@@ -50,6 +51,24 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onEdit, onDelete, onV
     // Dialog States
     const [invoiceOrder, setInvoiceOrder] = useState<ServiceOrder | null>(null);
     const [installOrder, setInstallOrder] = useState<ServiceOrder | null>(null);
+
+    // Filter orders based on visibility logic (moved from render loop)
+    const filteredOrders = orders.filter(order => {
+        if ((profile?.role === 'worker' || profile?.role === 'manager') && (order.status === 'to_invoice' || order.status === 'invoiced')) {
+            return false;
+        }
+        return true;
+    });
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+
+    const currentOrders = filteredOrders.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     // Helpers
     const getStatusColor = (status: string) =>
@@ -129,124 +148,127 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onEdit, onDelete, onV
     };
 
     return (
-        <div className="rounded-md border bg-white shadow-sm overflow-hidden">
-            <Table>
-                <TableHeader>
-                    <TableRow className="bg-slate-50">
-                        <TableHead>OS / Cliente</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Datas</TableHead>
-                        <TableHead>Responsável</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {orders.map((order) => {
-                        // Worker hiding logic
-                        if ((profile?.role === 'worker' || profile?.role === 'manager') && (order.status === 'to_invoice' || order.status === 'invoiced')) {
-                            return null;
-                        }
+        <div className="space-y-4">
+            <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-slate-50">
+                            <TableHead>OS / Cliente</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Descrição</TableHead>
+                            <TableHead>Datas</TableHead>
+                            <TableHead>Responsável</TableHead>
+                            <TableHead>Valor</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {currentOrders.map((order) => {
+                            const getPriorityColor = (urgency: string) => {
+                                if (urgency === 'high') return 'bg-red-100 hover:bg-red-200';
+                                if (urgency === 'low') return 'bg-blue-50 hover:bg-blue-100';
+                                return 'hover:bg-slate-50'; // Default/Medium
+                            };
 
-                        const getPriorityColor = (urgency: string) => {
-                            if (urgency === 'high') return 'bg-red-100 hover:bg-red-200';
-                            if (urgency === 'low') return 'bg-blue-50 hover:bg-blue-100';
-                            return 'hover:bg-slate-50'; // Default/Medium
-                        };
-
-                        return (
-                            <TableRow key={order.id} className={`${getPriorityColor(order.urgency)} transition-colors`}>
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-slate-800">{order.order_number}</span>
-                                        <span className="text-sm text-slate-600 truncate max-w-[150px]" title={order.client_name}>{order.client_name}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge className={`${getStatusColor(order.status)} whitespace-nowrap min-w-[80px] justify-center`}>
-                                        {getStatusText(order.status)}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <p className="text-sm text-slate-600 line-clamp-2 max-w-[200px]" title={order.service_description}>
-                                        {order.service_description}
-                                    </p>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col gap-1 text-xs text-slate-600">
-                                        <div className="flex items-center gap-1">
-                                            <CalendarIcon size={12} />
-                                            <span>{formatDate(order.opening_date)}</span>
+                            return (
+                                <TableRow key={order.id} className={`${getPriorityColor(order.urgency)} transition-colors`}>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-slate-800">{order.order_number}</span>
+                                            <span className="text-sm text-slate-600 truncate max-w-[150px]" title={order.client_name}>{order.client_name}</span>
                                         </div>
-                                        {order.deadline && (
-                                            <div className="flex items-center gap-1 text-red-600" title="Prazo">
-                                                <Clock size={12} />
-                                                <span>{formatDate(order.deadline)}</span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge className={`${getStatusColor(order.status)} whitespace-nowrap min-w-[80px] justify-center`}>
+                                            {getStatusText(order.status)}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <p className="text-sm text-slate-600 line-clamp-2 max-w-[200px]" title={order.service_description}>
+                                            {order.service_description}
+                                        </p>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-1 text-xs text-slate-600">
+                                            <div className="flex items-center gap-1">
+                                                <CalendarIcon size={12} />
+                                                <span>{formatDate(order.opening_date)}</span>
                                             </div>
-                                        )}
-                                        {order.service_start_date && (
-                                            <div className="flex items-center gap-1 text-blue-600" title="Instalação">
-                                                <CheckCircle size={12} />
-                                                <span>{formatDate(order.service_start_date)}</span>
+                                            {order.deadline && (
+                                                <div className="flex items-center gap-1 text-red-600" title="Prazo">
+                                                    <Clock size={12} />
+                                                    <span>{formatDate(order.deadline)}</span>
+                                                </div>
+                                            )}
+                                            {order.service_start_date && (
+                                                <div className="flex items-center gap-1 text-blue-600" title="Instalação">
+                                                    <CheckCircle size={12} />
+                                                    <span>{formatDate(order.service_start_date)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {order.assigned_worker ? (
+                                            <div className="flex items-center gap-1 text-sm text-slate-700">
+                                                <User size={14} />
+                                                <span className="truncate max-w-[100px]" title={order.assigned_worker.name}>{order.assigned_worker.name}</span>
                                             </div>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic">Não atribuído</span>
                                         )}
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    {order.assigned_worker ? (
-                                        <div className="flex items-center gap-1 text-sm text-slate-700">
-                                            <User size={14} />
-                                            <span className="truncate max-w-[100px]" title={order.assigned_worker.name}>{order.assigned_worker.name}</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-xs text-slate-400 italic">Não atribuído</span>
-                                    )}
-                                </TableCell>
-                                <TableCell>
-                                    {order.sale_value != null && profile?.role !== 'worker' && profile?.role !== 'manager' ? (
-                                        <div className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                                            <DollarSign size={14} />
-                                            {order.sale_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                        </div>
-                                    ) : '-'}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <div className="flex justify-end items-center gap-1 flex-wrap max-w-[200px] ml-auto">
-                                        {/* Workflow Buttons */}
-                                        {order.status === 'quality_control' && canEdit && (
-                                            <>
-                                                <Button size="sm" onClick={() => handleApproveQC(order.id)} className="h-7 w-7 p-0 bg-lime-600 hover:bg-lime-700 text-white" title="Aprovar CQ"><CheckCircle size={14} /></Button>
-                                                <Button size="sm" onClick={() => handleRejectQC(order.id)} className="h-7 w-7 p-0 bg-red-600 hover:bg-red-700 text-white" title="Reprovar CQ"><XCircle size={14} /></Button>
-                                            </>
-                                        )}
-                                        {order.status === 'ready_for_pickup' && canEdit && (
-                                            <>
-                                                <Button size="sm" onClick={() => handleConfirmPickup(order.id)} className="h-7 w-7 p-0 bg-blue-600 hover:bg-blue-700 text-white" title="Confirmar Retirada"><CheckCircle size={14} /></Button>
-                                                <Button size="sm" onClick={() => setInstallOrder(order)} className="h-7 w-7 p-0 bg-blue-600 hover:bg-blue-700 text-white" title="Agendar Instalação"><CalendarIcon size={14} /></Button>
-                                            </>
-                                        )}
-                                        {order.status === 'awaiting_installation' && canEdit && (
-                                            <Button size="sm" onClick={() => handleConfirmInstallation(order.id)} className="h-7 px-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs" >Confirmar Instalação</Button>
-                                        )}
-                                        {order.status === 'to_invoice' && profile?.role === 'admin' && (
-                                            <Button size="sm" onClick={() => setInvoiceOrder(order)} className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-xs">Gerar Fatura</Button>
-                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {order.sale_value != null && profile?.role !== 'worker' && profile?.role !== 'manager' ? (
+                                            <div className="flex items-center gap-1 text-sm font-medium text-slate-700">
+                                                <DollarSign size={14} />
+                                                {order.sale_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            </div>
+                                        ) : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end items-center gap-1 flex-wrap max-w-[200px] ml-auto">
+                                            {/* Workflow Buttons */}
+                                            {order.status === 'quality_control' && canEdit && (
+                                                <>
+                                                    <Button size="sm" onClick={() => handleApproveQC(order.id)} className="h-7 w-7 p-0 bg-lime-600 hover:bg-lime-700 text-white" title="Aprovar CQ"><CheckCircle size={14} /></Button>
+                                                    <Button size="sm" onClick={() => handleRejectQC(order.id)} className="h-7 w-7 p-0 bg-red-600 hover:bg-red-700 text-white" title="Reprovar CQ"><XCircle size={14} /></Button>
+                                                </>
+                                            )}
+                                            {order.status === 'ready_for_pickup' && canEdit && (
+                                                <>
+                                                    <Button size="sm" onClick={() => handleConfirmPickup(order.id)} className="h-7 w-7 p-0 bg-blue-600 hover:bg-blue-700 text-white" title="Confirmar Retirada"><CheckCircle size={14} /></Button>
+                                                    <Button size="sm" onClick={() => setInstallOrder(order)} className="h-7 w-7 p-0 bg-blue-600 hover:bg-blue-700 text-white" title="Agendar Instalação"><CalendarIcon size={14} /></Button>
+                                                </>
+                                            )}
+                                            {order.status === 'awaiting_installation' && canEdit && (
+                                                <Button size="sm" onClick={() => handleConfirmInstallation(order.id)} className="h-7 px-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs" >Confirmar Instalação</Button>
+                                            )}
+                                            {order.status === 'to_invoice' && profile?.role === 'admin' && (
+                                                <Button size="sm" onClick={() => setInvoiceOrder(order)} className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-xs">Gerar Fatura</Button>
+                                            )}
 
-                                        {/* Standard Actions */}
-                                        <div className="flex bg-slate-100 rounded-md p-0.5 ml-1">
-                                            <Button variant="ghost" size="sm" onClick={() => onView(order)} className="h-7 w-7 p-0 hover:text-blue-600" title="Visualizar"><Eye size={14} /></Button>
-                                            <Button variant="ghost" size="sm" onClick={() => navigate(`/tasks/${order.id}`)} className="h-7 w-7 p-0 hover:text-purple-600" title="Tarefas"><ListTodo size={14} /></Button>
-                                            {canEdit && <Button variant="ghost" size="sm" onClick={() => onEdit(order)} className="h-7 w-7 p-0 hover:text-orange-600" title="Editar"><Edit size={14} /></Button>}
-                                            {canDelete && <Button variant="ghost" size="sm" onClick={() => onDelete(order)} className="h-7 w-7 p-0 hover:text-red-600" title="Excluir"><Trash2 size={14} /></Button>}
+                                            {/* Standard Actions */}
+                                            <div className="flex bg-slate-100 rounded-md p-0.5 ml-1">
+                                                <Button variant="ghost" size="sm" onClick={() => onView(order)} className="h-7 w-7 p-0 hover:text-blue-600" title="Visualizar"><Eye size={14} /></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/tasks/${order.id}`)} className="h-7 w-7 p-0 hover:text-purple-600" title="Tarefas"><ListTodo size={14} /></Button>
+                                                {canEdit && <Button variant="ghost" size="sm" onClick={() => onEdit(order)} className="h-7 w-7 p-0 hover:text-orange-600" title="Editar"><Edit size={14} /></Button>}
+                                                {canDelete && <Button variant="ghost" size="sm" onClick={() => onDelete(order)} className="h-7 w-7 p-0 hover:text-red-600" title="Excluir"><Trash2 size={14} /></Button>}
+                                            </div>
                                         </div>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+            />
 
             {/* Dialogs */}
             {invoiceOrder && (
