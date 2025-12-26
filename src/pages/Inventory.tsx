@@ -3,24 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useRealtimeInventory } from '../hooks/useRealtimeInventory';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '../components/ui/dialog';
-import { Package, Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Package, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface InventoryItem {
-  id: string;
-  name: string;
-  current_quantity: number;
-  purchase_price?: number;
-  created_at: string;
-  updated_at: string;
-}
+import { InventoryItem } from '../types/database';
+import InventoryTable from '../components/inventory/InventoryTable';
 
 const Inventory = () => {
   const { profile } = useAuth();
@@ -30,6 +22,7 @@ const Inventory = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,10 +45,12 @@ const Inventory = () => {
   });
 
   const filteredItems = useMemo(() => {
-    return items.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [items, searchTerm]);
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesLowStock = showLowStockOnly ? item.current_quantity <= 10 : true;
+      return matchesSearch && matchesLowStock;
+    });
+  }, [items, searchTerm, showLowStockOnly]);
 
   const createItemMutation = useMutation({
     mutationFn: async (itemData: Omit<InventoryItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -215,12 +210,22 @@ const Inventory = () => {
         )}
       </div>
 
-      <div className="mb-4 max-w-sm">
-        <Input
-          placeholder="Buscar por nome do item..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex gap-4 mb-4">
+        <div className="flex-1 max-w-sm">
+          <Input
+            placeholder="Buscar por nome do item..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Button
+          variant={showLowStockOnly ? "default" : "outline"}
+          onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+          className={showLowStockOnly ? "bg-orange-500 hover:bg-orange-600 border-orange-600" : ""}
+        >
+          <AlertTriangle className="mr-2 h-4 w-4" />
+          {showLowStockOnly ? 'Mostrando Estoque Baixo' : 'Filtrar Estoque Baixo'}
+        </Button>
       </div>
 
       {isLoading ? (
@@ -229,51 +234,24 @@ const Inventory = () => {
           <p className="mt-4 text-gray-600">Carregando itens...</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredItems.map((item) => (
-            <Card key={item.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Package className="h-5 w-5 text-gray-500" />
-                    <CardTitle className="text-lg">{item.name}</CardTitle>
-                  </div>
-                  {item.current_quantity <= 10 && (
-                    <AlertTriangle className="h-5 w-5 text-orange-500" />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4">
-                  <div className="text-2xl font-bold text-blue-600">{item.current_quantity}</div>
-                  <div className="text-sm text-gray-500">unidades em estoque</div>
-                  <div className="text-sm text-gray-700">
-                    Valor pago: R$ {item.purchase_price?.toFixed(2) ?? '0.00'}
-                  </div>
-                  {item.current_quantity <= 10 && (
-                    <div className="text-sm text-orange-600 font-medium">⚠️ Estoque baixo</div>
-                  )}
-                </div>
-                {canManage && (
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteItemMutation.mutate(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Excluir
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          {filteredItems.length === 0 ? (
+            <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+              <Package className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-slate-900">Nenhum item encontrado</h3>
+              <p className="text-slate-500">
+                {searchTerm ? 'Tente buscar com outro termo.' : 'Adicione itens ao seu estoque.'}
+              </p>
+            </div>
+          ) : (
+            <InventoryTable
+              items={filteredItems}
+              onEdit={handleEdit}
+              onDelete={(id) => deleteItemMutation.mutate(id)}
+              canManage={canManage}
+            />
+          )}
+        </>
       )}
     </div>
   );

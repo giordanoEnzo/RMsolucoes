@@ -22,7 +22,7 @@ const Sidebar = () => {
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const getNavigationItems = () => {
-    const baseItems = [
+    const baseItems: { path: string; icon: any; label: string; isLogout?: boolean }[] = [
       { path: '/dashboard', icon: Home, label: 'Dashboard' },
       { path: '/orders', icon: ClipboardList, label: 'Ordens de Serviço' },
     ];
@@ -45,7 +45,7 @@ const Sidebar = () => {
       );
     }
 
-    if ( profile?.role === 'manager') {
+    if (profile?.role === 'manager') {
       baseItems.push(
         { path: '/clients', icon: UserCircle, label: 'Clientes' },
         //{ path: '/services', icon: Package, label: 'Serviços' },
@@ -83,7 +83,7 @@ const Sidebar = () => {
 
       {/* Logo e perfil */}
       {isOpen && (
-        <div className="p-4 border-b border-[hsl(var(--sidebar-border))] flex flex-col items-start">
+        <div className="px-4 pb-4 pt-0 border-b border-[hsl(var(--sidebar-border))] flex flex-col items-start">
           <img src={Logo} alt="Logo" className="w-32 mb-3" />
           <h1 className="text-xl font-bold">RM Soluções</h1>
           <p className="text-sm text-[hsl(var(--sidebar-foreground)/0.8)] mt-1">{profile?.name}</p>
@@ -91,8 +91,8 @@ const Sidebar = () => {
             {profile?.role === 'admin'
               ? 'Administrador'
               : profile?.role === 'manager'
-              ? 'Gerente'
-              : 'Operário'}
+                ? 'Gerente'
+                : 'Operário'}
           </p>
         </div>
       )}
@@ -114,10 +114,9 @@ const Sidebar = () => {
                 <NavLink
                   to={item.path}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ${
-                      isActive
-                        ? 'bg-[hsl(var(--sidebar-background))] text-white'
-                        : 'text-[hsl(var(--sidebar-foreground)/0.7)] hover:bg-[hsl(var(--sidebar-background))] hover:text-white'
+                    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ${isActive
+                      ? 'bg-[hsl(var(--sidebar-background))] text-white'
+                      : 'text-[hsl(var(--sidebar-foreground)/0.7)] hover:bg-[hsl(var(--sidebar-background))] hover:text-white'
                     }`
                   }
                 >

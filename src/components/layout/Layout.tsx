@@ -15,9 +15,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {isMobile ? (
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full h-full">
           {/* Header com botão de menu */}
           <div className="flex items-center justify-between p-4 shadow-md bg-white z-50">
             <Sheet open={open} onOpenChange={setOpen}>
@@ -39,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       ) : (
         <>
           <Sidebar />
-          <main className="flex-1 p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-6 overflow-y-auto">{children}</main>
         </>
       )}
     </div>

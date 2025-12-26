@@ -135,6 +135,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   current_quantity: number;
+  purchase_price?: number;
   created_at: string;
   updated_at: string;
 }
