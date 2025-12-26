@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Button } from '../components/ui/button';
-import { Plus, Search, Loader2, Filter } from 'lucide-react';
+import { Plus, Search, Loader2, Filter, Eye, EyeOff } from 'lucide-react';
 import { ServiceOrder } from '../types/database';
 import { useIsMobile } from '../hooks/use-mobile';
 
@@ -29,9 +29,15 @@ const Orders = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder & { assigned_worker?: { name: string } } | null>(null);
+  const [showFaturado, setShowFaturado] = useState(false);
 
   const getFilteredOrders = () => {
     let filteredOrders = orders;
+
+    // Filter out 'invoiced' if showFaturado is false
+    if (!showFaturado) {
+      filteredOrders = filteredOrders.filter(order => order.status !== 'invoiced');
+    }
 
     // Filtrar apenas ordens que não estão para faturar (para workers)
     if (profile?.role === 'worker') {
@@ -116,7 +122,7 @@ const Orders = () => {
           </p>
         </div>
         {canCreateOrder && canManageOrders && (
-          <Button 
+          <Button
             className={`bg-[#2D3D2C] hover:bg-[#374C36] text-white ${isMobile ? 'w-full' : ''}`}
             onClick={() => setShowCreateDialog(true)}
           >
@@ -138,7 +144,7 @@ const Orders = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className={`flex gap-4 ${isMobile ? 'flex-col' : 'flex-wrap'}`}>
+          <div className={`flex gap-4 ${isMobile ? 'flex-col' : 'flex-wrap'} items-center`}>
             <div className={`${isMobile ? 'w-full' : 'flex-1 min-w-64'}`}>
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
@@ -150,7 +156,17 @@ const Orders = () => {
                 />
               </div>
             </div>
-            
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowFaturado(!showFaturado)}
+              title={showFaturado ? "Ocultar Faturadas" : "Mostrar Faturadas"}
+              className={`${isMobile ? 'w-full' : ''} shrink-0`}
+            >
+              {showFaturado ? <Eye size={20} /> : <EyeOff size={20} />}
+            </Button>
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className={isMobile ? 'w-full' : 'w-48'}>
                 <SelectValue placeholder="Filtrar por status" />
@@ -166,6 +182,7 @@ const Orders = () => {
                   <SelectItem value="ready_for_pickup">Aguardando Retirada</SelectItem>
                   <SelectItem value="awaiting_installation">Aguardando Instalação</SelectItem>
                   <SelectItem value="to_invoice">Faturar</SelectItem>
+                  <SelectItem value="invoiced">Faturada</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
@@ -209,8 +226,8 @@ const Orders = () => {
       <div className="space-y-4">
         {filteredOrders.length > 0 ? (
           filteredOrders.map((order) => (
-            <OrderCard 
-              key={order.id} 
+            <OrderCard
+              key={order.id}
               order={order}
               onEdit={canManageOrders ? () => handleEditOrder(order) : undefined}
               onDelete={canManageOrders ? () => handleDeleteOrder(order) : undefined}
@@ -236,11 +253,11 @@ const Orders = () => {
       </div>
 
       {/* Dialogs */}
-      <CreateOrderDialog 
-        open={showCreateDialog} 
+      <CreateOrderDialog
+        open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
       />
-      
+
       {selectedOrder && (
         <>
           {/* Use different edit dialog based on user role */}
@@ -257,7 +274,7 @@ const Orders = () => {
               order={selectedOrder}
             />
           )}
-          
+
           <DeleteOrderDialog
             open={showDeleteDialog}
             onOpenChange={setShowDeleteDialog}

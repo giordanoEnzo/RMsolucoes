@@ -143,7 +143,7 @@ export interface InventoryMovement {
   created_at: string;
 }
 
-export type OrderStatus = 
+export type OrderStatus =
   | 'pending'               // Pendente
   | 'production'            // Em produção
   | 'on_hold'               // Em espera
@@ -152,10 +152,11 @@ export type OrderStatus =
   | 'ready_for_pickup'      // Aguardando retirada
   | 'awaiting_installation' // Aguardando instalação
   | 'to_invoice'            // Faturar
+  | 'invoiced'              // Faturada
   | 'completed'             // Finalizado
-  | 'cancelled'; 
+  | 'cancelled';
 
-  export const orderStatusLabels: Record<OrderStatus, string> = {
+export const orderStatusLabels: Record<OrderStatus, string> = {
   pending: 'Pendente',
   production: 'Em produção',
   on_hold: 'Em espera',
@@ -164,6 +165,7 @@ export type OrderStatus =
   ready_for_pickup: 'Aguardando retirada',
   awaiting_installation: 'Aguardando instalação',
   to_invoice: 'Faturar',
+  invoiced: 'Faturada',
   completed: 'Finalizado',
   cancelled: 'Cancelado',
 };
