@@ -14,6 +14,11 @@ export interface Client {
   contact: string;
   address: string;
   cnpj_cpf?: string;
+  company_name?: string;
+  number?: string;
+  cep?: string;
+  complement?: string;
+  state?: string;
   created_at: string;
   updated_at: string;
 }

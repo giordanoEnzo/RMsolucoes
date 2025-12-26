@@ -4,13 +4,15 @@ import { supabase } from '../integrations/supabase/client';
 import { Client } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { useRealtimeClients } from '../hooks/useRealtimeClients';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { UserCircle, Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+
+import ClientsTable from '../components/clients/ClientsTable';
+import ClientViewDialog from '../components/clients/ClientViewDialog';
 
 const Clients = () => {
   const { profile } = useAuth();
@@ -19,6 +21,7 @@ const Clients = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [viewClient, setViewClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -91,6 +94,10 @@ const Clients = () => {
     setIsDialogOpen(true);
   };
 
+  const handleView = (client: Client) => {
+    setViewClient(client);
+  };
+
   const formatCnpjCpf = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -103,21 +110,21 @@ const Clients = () => {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const formatted = formatPhone(e.target.value);
-  setFormData({ ...formData, contact: formatted });
-};
+    const formatted = formatPhone(e.target.value);
+    setFormData({ ...formData, contact: formatted });
+  };
 
 
   const formatPhone = (value: string) => {
-  const numbers = value.replace(/\D/g, '');
+    const numbers = value.replace(/\D/g, '');
 
-  
-  if (numbers.length <= 2) return `+${numbers}`;
-  if (numbers.length <= 4) return `+${numbers.slice(0, 2)} ${numbers.slice(2)}`;
-  if (numbers.length <= 9) return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4)}`;
-  if (numbers.length <= 13) return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 9)}-${numbers.slice(9)}`;
-  return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 9)}-${numbers.slice(9, 13)}`;
-};
+
+    if (numbers.length <= 2) return `+${numbers}`;
+    if (numbers.length <= 4) return `+${numbers.slice(0, 2)} ${numbers.slice(2)}`;
+    if (numbers.length <= 9) return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4)}`;
+    if (numbers.length <= 13) return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 9)}-${numbers.slice(9)}`;
+    return `+${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 9)}-${numbers.slice(9, 13)}`;
+  };
 
   const createClientMutation = useMutation({
     mutationFn: async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
@@ -188,58 +195,58 @@ const Clients = () => {
               <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label>Nome</Label>
+                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Razão Social</Label>
+                <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
+              </div>
+              <div>
+                <Label>CNPJ/CPF</Label>
+                <Input value={formData.cnpj_cpf} onChange={handleCnpjCpfChange} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={18} />
+              </div>
+              <div>
+                <Label>Contato</Label>
+                <Input
+                  value={formData.contact}
+                  onChange={handlePhoneChange}
+                  placeholder="+55 (35) 3539-3344"
+                />
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label>Nome</Label>
-                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}  />
-                </div>
-                <div>
-                  <Label>Razão Social</Label>
-                  <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
-                </div>
-                <div>
-                  <Label>CNPJ/CPF</Label>
-                  <Input value={formData.cnpj_cpf} onChange={handleCnpjCpfChange} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={18} />
-                </div>
-                <div>
-                  <Label>Contato</Label>
-                  <Input
-                    value={formData.contact}
-                    onChange={handlePhoneChange}
-                    placeholder="+55 (35) 3539-3344"
-                  />
-                </div>
-                <div>
-                  <Label>Endereço</Label>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })}  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>Número</Label>
-                    <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Bairro</Label>
-                    <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>CEP</Label>
-                    <Input value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Complemento</Label>
-                    <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
-                  </div>
+                  <Label>Número</Label>
+                  <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Estado</Label>
-                  <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
+                  <Label>Bairro</Label>
+                  <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
                 </div>
-                <Button type="submit" className="w-full">
-                  {editingClient ? 'Atualizar' : 'Criar'} Cliente
-                </Button>
-              </form>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>CEP</Label>
+                  <Input value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Complemento</Label>
+                  <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Estado</Label>
+                <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
+              </div>
+              <Button type="submit" className="w-full">
+                {editingClient ? 'Atualizar' : 'Criar'} Cliente
+              </Button>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -254,39 +261,19 @@ const Clients = () => {
           <p className="mt-4 text-gray-600">Carregando clientes...</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredClients.map((client) => (
-            <Card key={client.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-2">
-                  <UserCircle className="h-5 w-5 text-gray-500" />
-                  <CardTitle className="text-lg">{client.name}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4 text-sm text-gray-600">
-                  {client.company_name && <div><strong>Razão Social:</strong> {client.company_name}</div>}
-                  {client.cnpj_cpf && <div><strong>CNPJ/CPF:</strong> {client.cnpj_cpf}</div>}
-                  <div><strong>Contato:</strong> {client.contact}</div>
-                  <div><strong>Endereço:</strong> {client.address}, {client.number || 'S/N'}</div>
-                  {client.neighborhood && <div><strong>Bairro:</strong> {client.neighborhood}</div>}
-                  {client.cep && <div><strong>CEP:</strong> {client.cep}</div>}
-                  {client.complement && <div><strong>Complemento:</strong> {client.complement}</div>}
-                  {client.state && <div><strong>Estado:</strong> {client.state}</div>}
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(client)}>
-                    <Edit className="h-4 w-4 mr-1" /> Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => deleteClientMutation.mutate(client.id)}>
-                    <Trash2 className="h-4 w-4 mr-1" /> Excluir
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ClientsTable
+          clients={filteredClients}
+          onEdit={handleEdit}
+          onDelete={(client) => deleteClientMutation.mutate(client.id)}
+          onView={handleView}
+        />
       )}
+
+      <ClientViewDialog
+        open={!!viewClient}
+        onOpenChange={(open) => !open && setViewClient(null)}
+        client={viewClient}
+      />
     </div>
   );
 };
