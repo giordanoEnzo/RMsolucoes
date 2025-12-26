@@ -12,6 +12,9 @@ import { ServiceOrder, BudgetItem, ServiceOrderItem } from '../../types/database
 import { useAuth } from '../../contexts/AuthContext';
 import TaskManagement from './TaskManagement';
 import ImageUpload from './ImageUpload';
+import { Button } from '../ui/button';
+import { ServiceOrderPDFGenerator } from './ServiceOrderPDFGenerator';
+import { useState } from 'react';
 
 
 interface OrderDetailsDialogProps {
@@ -28,6 +31,7 @@ interface OrderDetailsDialogProps {
 
 const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogProps) => {
   const { profile } = useAuth();
+  const [showPDFGenerator, setShowPDFGenerator] = useState(false);
 
   const getStatusLabel = (status: string) => {
     const statusMap = {
@@ -304,8 +308,28 @@ const OrderDetailsDialog = ({ open, onOpenChange, order }: OrderDetailsDialogPro
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Footer com botão de PDF */}
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+          <Button
+            onClick={() => setShowPDFGenerator(true)}
+            className="bg-[#2D3D2C] hover:bg-[#374C36] text-white"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Gerar PDF
+          </Button>
+        </div>
       </DialogContent>
-    </Dialog>
+
+      {
+        showPDFGenerator && (
+          <ServiceOrderPDFGenerator
+            order={order}
+            onClose={() => setShowPDFGenerator(false)}
+          />
+        )
+      }
+    </Dialog >
   );
 };
 
