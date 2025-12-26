@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientSelectionDialog from '../clients/ClientSelectionDialog';
+import EmployeeSelectionDialog from '../employees/EmployeeSelectionDialog';
 
 interface CreateOrderDialogProps {
   open: boolean;
@@ -70,6 +71,7 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
   const { workers } = useWorkers();
 
   const [isClientSelectionOpen, setIsClientSelectionOpen] = useState(false);
+  const [isEmployeeSelectionOpen, setIsEmployeeSelectionOpen] = useState(false);
 
   const handleClientSelect = (clientId: string) => {
     if (clientId === 'new_client') {
@@ -542,20 +544,39 @@ const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({ open, onOpenChang
               </Select>
             </div>
             <div>
-              <Label>Responsável Atribuído</Label>
-              <Select
-                value={formData.assigned_worker_id}
-                onValueChange={(v) => setFormData({ ...formData, assigned_worker_id: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione um responsável" /></SelectTrigger>
-                <SelectContent>
-                  {workers.map(w => (
-                    <SelectItem key={w.id} value={w.id}>
-                      {w.name} ({w.role === 'admin' ? 'Administrador' : w.role === 'manager' ? 'Gerente' : 'Operário'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Responsável</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.assigned_worker_id}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_worker_id: value }))}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecionar responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Não atribuído</SelectItem>
+                    {workers.map((worker) => (
+                      <SelectItem key={worker.id} value={worker.id}>
+                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsEmployeeSelectionOpen(true)}
+                  title="Buscar funcionário"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+              <EmployeeSelectionDialog
+                open={isEmployeeSelectionOpen}
+                onOpenChange={setIsEmployeeSelectionOpen}
+                onSelect={(employee) => setFormData((prev) => ({ ...prev, assigned_worker_id: employee.id }))}
+              />
             </div>
           </div>
 

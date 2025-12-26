@@ -7,7 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { supabase } from '../../integrations/supabase/client';
 import { useServiceOrderTasks } from '../../hooks/useServiceOrderTasks';
 import { TaskPriority } from '../../types/database';
 import { useAuth } from '../../contexts/AuthContext';
+import EmployeeSelectionDialog from '../employees/EmployeeSelectionDialog';
 
 interface CreateTaskDialogProps {
   serviceOrderId: string;
@@ -33,8 +34,11 @@ interface TaskFormData {
 export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrderId, children }) => {
   const [open, setOpen] = useState(false);
   const [deadline, setDeadline] = useState<Date>();
+  const [isEmployeeSelectionOpen, setIsEmployeeSelectionOpen] = useState(false);
   const { createTask, isCreating } = useServiceOrderTasks(serviceOrderId);
   const { user, profile } = useAuth();
+
+  // ... (keep query and useForm)
 
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
@@ -82,6 +86,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
           <DialogTitle>Criar Nova Tarefa</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* ... (keep other fields) */}
           <div>
             <Label htmlFor="title">Título *</Label>
             <Input
@@ -146,22 +151,38 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ serviceOrder
                 </Button>
               )}
             </div>
-            <Select
-              value={watch('assigned_worker_id')}
-              onValueChange={(value) => setValue('assigned_worker_id', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                {workers.map((worker) => (
-                  <SelectItem key={worker.id} value={worker.id}>
-                    {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
-                    {worker.id === profile?.id && ' (Você)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={watch('assigned_worker_id')}
+                onValueChange={(value) => setValue('assigned_worker_id', value)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione um responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workers.map((worker) => (
+                    <SelectItem key={worker.id} value={worker.id}>
+                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                      {worker.id === profile?.id && ' (Você)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsEmployeeSelectionOpen(true)}
+                title="Buscar funcionário"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            <EmployeeSelectionDialog
+              open={isEmployeeSelectionOpen}
+              onOpenChange={setIsEmployeeSelectionOpen}
+              onSelect={(employee) => setValue('assigned_worker_id', employee.id)}
+            />
           </div>
 
           <div>

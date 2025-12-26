@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -8,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../ui/textarea';
 import { ServiceOrder, OrderStatus, Urgency } from '../../types/database';
 import { useServiceOrders, useWorkers } from '../../hooks/useServiceOrders';
+import EmployeeSelectionDialog from '../employees/EmployeeSelectionDialog';
+import { Search } from 'lucide-react';
 
 interface EditOrderDialogManagerProps {
   open: boolean;
@@ -18,7 +19,8 @@ interface EditOrderDialogManagerProps {
 const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, onOpenChange, order }) => {
   const { updateOrder, isUpdating } = useServiceOrders();
   const { workers } = useWorkers();
-  
+  const [isEmployeeSelectionOpen, setIsEmployeeSelectionOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     client_name: '',
     client_contact: '',
@@ -29,6 +31,8 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
     assigned_worker_id: '',
     deadline: '',
   });
+
+  // ... (keep useEffect and handleSubmit)
 
   useEffect(() => {
     if (order) {
@@ -47,7 +51,7 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const updateData = {
       id: order.id,
       ...formData,
@@ -65,8 +69,9 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
         <DialogHeader>
           <DialogTitle>Editar Ordem de Serviço - {order?.order_number}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ... (keep other form fields until assigned_worker) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="client_name">Nome do Cliente</Label>
@@ -77,7 +82,7 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
                 required
               />
             </div>
-            
+
             <div>
               <Label htmlFor="client_contact">Contato do Cliente</Label>
               <Input
@@ -129,21 +134,21 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pendente</SelectItem>
-                                      <SelectItem value="production">Em Produção</SelectItem>
-                                      <SelectItem value="on_hold">Em Espera</SelectItem>
-                                      <SelectItem value="stopped">Paralisado</SelectItem>
-                                      <SelectItem value="quality_control">
-                                        Controle de Qualidade
-                                      </SelectItem>
-                                      <SelectItem value="ready_for_pickup">
-                                        Aguardando Retirada
-                                      </SelectItem>
-                                      <SelectItem value="awaiting_installation">
-                                        Aguardando Instalação
-                                      </SelectItem>
-                                      <SelectItem value="to_invoice">Faturar</SelectItem>
-                                      <SelectItem value="completed">Finalizado</SelectItem>
-                                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="production">Em Produção</SelectItem>
+                  <SelectItem value="on_hold">Em Espera</SelectItem>
+                  <SelectItem value="stopped">Paralisado</SelectItem>
+                  <SelectItem value="quality_control">
+                    Controle de Qualidade
+                  </SelectItem>
+                  <SelectItem value="ready_for_pickup">
+                    Aguardando Retirada
+                  </SelectItem>
+                  <SelectItem value="awaiting_installation">
+                    Aguardando Instalação
+                  </SelectItem>
+                  <SelectItem value="to_invoice">Faturar</SelectItem>
+                  <SelectItem value="completed">Finalizado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -164,19 +169,35 @@ const EditOrderDialogManager: React.FC<EditOrderDialogManagerProps> = ({ open, o
 
             <div>
               <Label htmlFor="assigned_worker">Responsável</Label>
-              <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_worker_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Não atribuído</SelectItem>
-                  {workers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_worker_id: value }))}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecionar responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Não atribuído</SelectItem>
+                    {workers.map((worker) => (
+                      <SelectItem key={worker.id} value={worker.id}>
+                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsEmployeeSelectionOpen(true)}
+                  title="Buscar funcionário"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+              <EmployeeSelectionDialog
+                open={isEmployeeSelectionOpen}
+                onOpenChange={setIsEmployeeSelectionOpen}
+                onSelect={(employee) => setFormData(prev => ({ ...prev, assigned_worker_id: employee.id }))}
+              />
             </div>
           </div>
 

@@ -10,6 +10,8 @@ import {
   SelectContent,
   SelectItem,
 } from '../ui/select';
+import MaterialSelectionDialog from '../inventory/MaterialSelectionDialog';
+import { Search } from 'lucide-react';
 
 interface InventoryItem {
   id: string;
@@ -31,6 +33,12 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ taskId }) =>
   const [selectedItemId, setSelectedItemId] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
   const [usedMaterials, setUsedMaterials] = useState<MaterialUsed[]>([]);
+  const [isSelectionOpen, setIsSelectionOpen] = useState(false);
+
+  // Helper to handle selection from dialog
+  const handleMaterialSelect = (item: InventoryItem) => {
+    setSelectedItemId(item.id);
+  };
 
   // Buscar inventário
   useEffect(() => {
@@ -67,64 +75,65 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ taskId }) =>
   }, [taskId]);
 
   const handleAddMaterial = async () => {
-  if (!selectedItemId || quantity <= 0) return;
+    if (!selectedItemId || quantity <= 0) return;
 
-  // 1. Buscar item atual (refrescado)
-  const { data: currentItem, error: fetchError } = await supabase
-    .from('inventory_items')
-    .select('current_quantity')
-    .eq('id', selectedItemId)
-    .single();
+    // 1. Buscar item atual (refrescado)
+    const { data: currentItem, error: fetchError } = await supabase
+      .from('inventory_items')
+      .select('current_quantity')
+      .eq('id', selectedItemId)
+      .single();
 
-  if (fetchError || !currentItem) {
-    console.error('Erro ao buscar item:', fetchError?.message);
-    return;
-  }
+    if (fetchError || !currentItem) {
+      console.error('Erro ao buscar item:', fetchError?.message);
+      return;
+    }
 
-  if (currentItem.current_quantity < quantity) {
-    alert('Quantidade insuficiente em estoque!');
-    return;
-  }
+    if (currentItem.current_quantity < quantity) {
+      alert('Quantidade insuficiente em estoque!');
+      return;
+    }
 
-  // 2. Inserir material usado
-  const { error: insertError } = await supabase.from('task_materials').insert({
-    task_id: taskId,
-    inventory_item_id: selectedItemId,
-    quantity_used: quantity,
-  });
+    // 2. Inserir material usado
+    const { error: insertError } = await supabase.from('task_materials').insert({
+      task_id: taskId,
+      inventory_item_id: selectedItemId,
+      quantity_used: quantity,
+    });
 
-  if (insertError) {
-    console.error('Erro ao adicionar material:', insertError.message);
-    return;
-  }
+    if (insertError) {
+      console.error('Erro ao adicionar material:', insertError.message);
+      return;
+    }
 
-  // 3. Atualizar estoque
-  const newQuantity = currentItem.current_quantity - quantity;
-  const { error: updateError } = await supabase
-    .from('inventory_items')
-    .update({ current_quantity: newQuantity })
-    .eq('id', selectedItemId);
+    // 3. Atualizar estoque
+    const newQuantity = currentItem.current_quantity - quantity;
+    const { error: updateError } = await supabase
+      .from('inventory_items')
+      .update({ current_quantity: newQuantity })
+      .eq('id', selectedItemId);
 
-  if (updateError) {
-    console.error('Erro ao atualizar o estoque:', updateError.message);
-    return;
-  }
+    if (updateError) {
+      console.error('Erro ao atualizar o estoque:', updateError.message);
+      return;
+    }
 
-  // 4. Atualizar UI
-  setUsedMaterials([
-    ...usedMaterials,
-    { inventory_item_id: selectedItemId, quantity_used: quantity },
-  ]);
-  setItems((prev) =>
-    prev.map((item) =>
-      item.id === selectedItemId
-        ? { ...item, current_quantity: newQuantity }
-        : item
-    )
-  );
-  setQuantity(1);
-  setSelectedItemId('');
-};
+    // 4. Atualizar UI
+    setUsedMaterials([
+      ...usedMaterials,
+      { inventory_item_id: selectedItemId, quantity_used: quantity },
+    ]);
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === selectedItemId
+          ? { ...item, current_quantity: newQuantity }
+          : item
+      )
+    );
+    setQuantity(1);
+    setSelectedItemId('');
+  };
+
   return (
     <div className="space-y-4 p-4 border rounded-xl bg-white shadow-sm">
       <h4 className="font-bold text-lg">Materiais Utilizados</h4>
@@ -132,19 +141,35 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ taskId }) =>
       <div className="flex gap-2 items-end">
         <div className="flex-1">
           <Label>Material</Label>
-          <Select onValueChange={(val) => setSelectedItemId(val)} value={selectedItemId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o material" />
-            </SelectTrigger>
-            <SelectContent>
-              {items.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.name} (estoque: {item.current_quantity})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select onValueChange={(val) => setSelectedItemId(val)} value={selectedItemId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Selecione o material" />
+              </SelectTrigger>
+              <SelectContent>
+                {items.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name} (estoque: {item.current_quantity})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsSelectionOpen(true)}
+              title="Buscar material"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+
+        <MaterialSelectionDialog
+          open={isSelectionOpen}
+          onOpenChange={setIsSelectionOpen}
+          onSelect={handleMaterialSelect}
+        />
 
         <div className="w-24">
           <Label>Qtd</Label>

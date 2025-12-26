@@ -13,10 +13,11 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import { ServiceOrderTask, TaskPriority, TaskStatus } from '../../types/database';
+import EmployeeSelectionDialog from '../employees/EmployeeSelectionDialog';
 
 interface TaskManagementProps {
   serviceOrderId: string;
@@ -24,12 +25,15 @@ interface TaskManagementProps {
 
 const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
   const { profile } = useAuth();
-  
+
   // ✅ Hook para atualizações em tempo real das tarefas
   useRealtimeTasks(serviceOrderId);
-  
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ServiceOrderTask | null>(null);
+  const [isEmployeeSelectionCreateOpen, setIsEmployeeSelectionCreateOpen] = useState(false);
+  const [isEmployeeSelectionEditOpen, setIsEmployeeSelectionEditOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -64,7 +68,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name')
+        .select('id, name, role')
         .eq('role', 'worker');
 
       if (error) throw error;
@@ -179,7 +183,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const taskData = {
       title: formData.title,
       description: formData.description || null,
@@ -268,11 +272,11 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                     {getPriorityText(task.priority)}
                   </Badge>
                 </div>
-                
+
                 {task.description && (
                   <p className="text-sm text-gray-600 mb-2">{task.description}</p>
                 )}
-                
+
                 {task.status_details && (
                   <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2">
                     <p className="text-sm text-blue-800">
@@ -280,7 +284,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                     </p>
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   {task.assigned_worker?.name && (
                     <span>Responsável: {task.assigned_worker.name}</span>
@@ -290,22 +294,22 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 {canManage && (
                   <>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleEdit(task)}
                       title="Editar Tarefa"
                       className="hover:bg-blue-50 hover:text-blue-600"
                     >
                       <Edit size={16} />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => deleteTask(task.id)}
                       disabled={isDeleting}
                       title="Excluir Tarefa"
@@ -337,7 +341,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 required
               />
             </div>
-            
+
             <div>
               <Label htmlFor="description">Descrição</Label>
               <Textarea
@@ -346,7 +350,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="status_details">Detalhes do Status</Label>
               <Textarea
@@ -356,7 +360,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 placeholder="Informações adicionais sobre o status da tarefa..."
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="priority">Prioridade</Label>
@@ -371,7 +375,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value: TaskStatus) => setFormData({ ...formData, status: value })}>
@@ -387,24 +391,40 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 </Select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="assigned_worker">Responsável</Label>
-                <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData({ ...formData, assigned_worker_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workers.map((worker) => (
-                      <SelectItem key={worker.id} value={worker.id}>
-                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData({ ...formData, assigned_worker_id: value })}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workers.map((worker) => (
+                        <SelectItem key={worker.id} value={worker.id}>
+                          {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsEmployeeSelectionCreateOpen(true)}
+                    title="Buscar funcionário"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+                <EmployeeSelectionDialog
+                  open={isEmployeeSelectionCreateOpen}
+                  onOpenChange={setIsEmployeeSelectionCreateOpen}
+                  onSelect={(employee) => setFormData({ ...formData, assigned_worker_id: employee.id })}
+                />
               </div>
-              
+
               <div>
                 <Label htmlFor="estimated_hours">Horas Estimadas</Label>
                 <Input
@@ -416,7 +436,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancelar
@@ -446,7 +466,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 required
               />
             </div>
-            
+
             <div>
               <Label htmlFor="edit-description">Descrição</Label>
               <Textarea
@@ -455,7 +475,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="edit-status_details">Detalhes do Status</Label>
               <Textarea
@@ -465,7 +485,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 placeholder="Informações adicionais sobre o status da tarefa..."
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-priority">Prioridade</Label>
@@ -480,7 +500,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="edit-status">Status</Label>
                 <Select value={formData.status} onValueChange={(value: TaskStatus) => setFormData({ ...formData, status: value })}>
@@ -496,24 +516,40 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 </Select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-assigned_worker">Responsável</Label>
-                <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData({ ...formData, assigned_worker_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workers.map((worker) => (
-                      <SelectItem key={worker.id} value={worker.id}>
-                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={formData.assigned_worker_id} onValueChange={(value) => setFormData({ ...formData, assigned_worker_id: value })}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workers.map((worker) => (
+                        <SelectItem key={worker.id} value={worker.id}>
+                          {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsEmployeeSelectionEditOpen(true)}
+                    title="Buscar funcionário"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+                <EmployeeSelectionDialog
+                  open={isEmployeeSelectionEditOpen}
+                  onOpenChange={setIsEmployeeSelectionEditOpen}
+                  onSelect={(employee) => setFormData({ ...formData, assigned_worker_id: employee.id })}
+                />
               </div>
-              
+
               <div>
                 <Label htmlFor="edit-estimated_hours">Horas Estimadas</Label>
                 <Input
@@ -525,7 +561,7 @@ const TaskManagement = ({ serviceOrderId }: TaskManagementProps) => {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditingTask(null)}>
                 Cancelar

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import { Textarea } from '../ui/textarea';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { ServiceOrder, OrderStatus, Urgency } from '../../types/database';
 import { useServiceOrders, useWorkers } from '../../hooks/useServiceOrders';
 import OnHoldReasonDialog from './OnHoldReasonDialog';
@@ -24,6 +24,7 @@ import { useServiceOrderCalls } from '../../hooks/useServiceOrderCalls';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '../../integrations/supabase/client';
+import EmployeeSelectionDialog from '../employees/EmployeeSelectionDialog';
 
 interface EditOrderDialogProps {
   open: boolean;
@@ -37,6 +38,8 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
   const { createCall } = useServiceOrderCalls();
   const { user, profile } = useAuth();
   const isWorker = profile?.role === 'worker';
+
+  const [isEmployeeSelectionOpen, setIsEmployeeSelectionOpen] = useState(false);
 
 
 
@@ -105,7 +108,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
         };
         fetchItems();
       };
-      
+
       loadOrderData();
     }
   }, [order]);
@@ -192,7 +195,7 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
       },
     ]);
   };
-  
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -477,22 +480,38 @@ const EditOrderDialog: React.FC<EditOrderDialogProps> = ({ open, onOpenChange, o
             </div>
             <div>
               <Label>Responsável</Label>
-              <Select
-                value={formData.assigned_worker_id}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_worker_id: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Não atribuído</SelectItem>
-                  {workers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.assigned_worker_id}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_worker_id: value }))}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecionar responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Não atribuído</SelectItem>
+                    {workers.map((worker) => (
+                      <SelectItem key={worker.id} value={worker.id}>
+                        {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsEmployeeSelectionOpen(true)}
+                  title="Buscar funcionário"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+              <EmployeeSelectionDialog
+                open={isEmployeeSelectionOpen}
+                onOpenChange={setIsEmployeeSelectionOpen}
+                onSelect={(employee) => setFormData((prev) => ({ ...prev, assigned_worker_id: employee.id }))}
+              />
             </div>
           </div>
 

@@ -7,7 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon, Edit } from 'lucide-react';
+import { CalendarIcon, Edit, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { supabase } from '../../integrations/supabase/client';
 import { useServiceOrderTasks } from '../../hooks/useServiceOrderTasks';
 import { TaskPriority, ServiceOrderTask } from '../../types/database';
 import { useAuth } from '../../contexts/AuthContext';
+import EmployeeSelectionDialog from '../employees/EmployeeSelectionDialog';
 
 interface EditTaskDialogProps {
   task: ServiceOrderTask;
@@ -36,8 +37,11 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({ task, serviceOrd
   const [deadline, setDeadline] = useState<Date | undefined>(
     task.deadline ? new Date(task.deadline) : undefined
   );
+  const [isEmployeeSelectionOpen, setIsEmployeeSelectionOpen] = useState(false);
   const { updateTask, isUpdating } = useServiceOrderTasks(serviceOrderId);
   const { user, profile } = useAuth();
+
+  // ... (keep query and useForm)
 
   const { data: workers = [] } = useQuery({
     queryKey: ['workers'],
@@ -171,22 +175,38 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({ task, serviceOrd
                 </Button>
               )}
             </div>
-            <Select
-              value={watch('assigned_worker_id')}
-              onValueChange={(value) => setValue('assigned_worker_id', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                {workers.map((worker) => (
-                  <SelectItem key={worker.id} value={worker.id}>
-                    {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
-                    {worker.id === profile?.id && ' (Você)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={watch('assigned_worker_id')}
+                onValueChange={(value) => setValue('assigned_worker_id', value)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione um responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workers.map((worker) => (
+                    <SelectItem key={worker.id} value={worker.id}>
+                      {worker.name} ({worker.role === 'admin' ? 'Administrador' : worker.role === 'manager' ? 'Gerente' : 'Operário'})
+                      {worker.id === profile?.id && ' (Você)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsEmployeeSelectionOpen(true)}
+                title="Buscar funcionário"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            <EmployeeSelectionDialog
+              open={isEmployeeSelectionOpen}
+              onOpenChange={setIsEmployeeSelectionOpen}
+              onSelect={(employee) => setValue('assigned_worker_id', employee.id)}
+            />
           </div>
 
           <div>
