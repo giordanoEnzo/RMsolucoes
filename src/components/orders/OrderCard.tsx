@@ -162,11 +162,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
     const totalExtrasSomados = extrasValidos.reduce((acc, item) => acc + item.value, 0);
     const totalFinal = saleValue + totalExtrasSomados;
 
-    // ✅ Verificação se valor total é zero
-    if (totalFinal === 0) {
-      toast.warning('Informe um valor antes de gerar a fatura.');
-      return;
-    }
+    // ✅ Verificação se valor total é zero (REMOVED as per request)
+    // if (totalFinal === 0) {
+    //   toast.warning('Informe um valor antes de gerar a fatura.');
+    //   return;
+    // }
 
     if (!order.client_id || !order.client_name || !order.opening_date) {
 
@@ -498,13 +498,13 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onEdit, onDelete, onView }
                       onChange={(e) => atualizarItemExtra(idx, 'descricao', e.target.value)}
                       className="w-full mb-1 border rounded px-2 py-1"
                     />
-                    
+
                   </div>
                 ))}
 
-                
 
-               
+
+
               </>
             )}
 
