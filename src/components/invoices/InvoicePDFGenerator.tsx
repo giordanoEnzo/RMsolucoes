@@ -73,7 +73,7 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
 export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
   const [invoiceItems, setInvoiceItems] = React.useState<any[]>([]);
   const [itemsLoading, setItemsLoading] = React.useState(true);
-  
+
   // Estados para condições de pagamento
   const [paymentConditions, setPaymentConditions] = React.useState({
     pix: true,
@@ -82,7 +82,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     cheque: true,
     cartao: false,
   });
-  
+
   // Estado para observações
   const [observations, setObservations] = React.useState('');
 
@@ -124,22 +124,24 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
 
     try {
       const logoBase64 = await loadImageAsBase64(logopath);
-      doc.addImage(logoBase64, 'PNG', 20, 10, 30, 30);
+      doc.addImage(logoBase64, 'PNG', 20, 10, 22, 22); // Reduced logo
     } catch (e) {
       console.warn('Erro ao carregar logo', e);
     }
 
-    doc.setFontSize(12);
+    doc.setFontSize(10); // Reduced font
     doc.setFont(undefined, 'bold');
-    doc.text('RMSoluções', 60, y);
+    doc.text('RMSoluções', 50, y);
     doc.setFont(undefined, 'normal');
-    doc.text('MARCIO JOSE LASTORIA 26654674880 | Email: rmsoldas@hotmail.com', 60, (y += 6));
-    doc.text('CNPJ: 19.957.948/0001-68                        | Telefone: +55 (19) 99652-4173', 60, (y += 6));
-    doc.text('Avenida Ângelo Franzini, 2438, barracão', 60, (y += 6));
-    doc.text('Residencial Bosque de Versalles, Araras-SP', 60, (y += 6));
-    doc.text('CEP 13609-391', 60, (y += 6));
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 60, (y += 6));
-    y += 10;
+    // Reduced spacing and font size for details
+    doc.setFontSize(9);
+    doc.text('MARCIO JOSE LASTORIA 26654674880 | Email: rmsoldas@hotmail.com', 50, (y += 5));
+    doc.text('CNPJ: 19.957.948/0001-68                        | Telefone: +55 (19) 99652-4173', 50, (y += 4));
+    doc.text('Avenida Ângelo Franzini, 2438, barracão', 50, (y += 4));
+    doc.text('Residencial Bosque de Versalles, Araras-SP', 50, (y += 4));
+    doc.text('CEP 13609-391', 50, (y += 4));
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 50, (y += 4));
+    y += 8;
 
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
@@ -168,25 +170,25 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     // Montar itens da tabela para PDF
     const items: any[] = [];
 
- 
-              
-        itemsToUse.forEach((item) => {
-          const serviceName = item.service_name || 'Serviço';
-          const serviceDescription = item.service_description || '';
-        
-          const descriptionText = serviceDescription
-            ? `\n-----------------------------------------------------------------------\n${serviceDescription}`
-            : '';
-        
-          items.push([
-            `${serviceName}${descriptionText}`,
-            'und.',
-            `R$ ${Number(item.unit_price ?? 0).toFixed(2)}`,
-            `${item.quantity ?? 1}`,
-            `R$ ${Number(item.sale_value ?? 0).toFixed(2)}`
-          ]);
-        });
-        
+
+
+    itemsToUse.forEach((item) => {
+      const serviceName = item.service_name || 'Serviço';
+      const serviceDescription = item.service_description || '';
+
+      const descriptionText = serviceDescription
+        ? `\n-----------------------------------------------------------------------\n${serviceDescription}`
+        : '';
+
+      items.push([
+        `${serviceName}${descriptionText}`,
+        'und.',
+        `R$ ${Number(item.unit_price ?? 0).toFixed(2)}`,
+        `${item.quantity ?? 1}`,
+        `R$ ${Number(item.sale_value ?? 0).toFixed(2)}`
+      ]);
+    });
+
 
     // Se não houver itens específicos, usar os dados das ordens de serviço
     if (items.length === 0) {
@@ -225,7 +227,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
         if (data.section === 'body' && data.column.index === 0) {
           // Garantir que o texto seja processado corretamente
           const cellText = data.cell.text[0];
-          
+
           if (typeof cellText === 'string' && cellText.includes('\n')) {
             const parts = cellText.split('\n');
             data.cell.text = parts;
@@ -258,10 +260,10 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
       doc.setFont(undefined, 'bold');
       doc.text('Observações', 20, y);
       y += 6;
-      
+
       doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      
+
       // Quebrar texto em múltiplas linhas se necessário
       const obsLines = doc.splitTextToSize(observations, pageWidth - 40);
       doc.text(obsLines, 20, y);
@@ -276,7 +278,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
 
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
-    
+
     // Criar texto de condições de pagamento baseado nas seleções
     const condicoes: string[] = [];
     if (paymentConditions.pix) condicoes.push('PIX');
@@ -284,13 +286,13 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
     if (paymentConditions.dinheiro) condicoes.push('dinheiro');
     if (paymentConditions.cheque) condicoes.push('cheque');
     if (paymentConditions.cartao) condicoes.push('cartão');
-    
+
     if (condicoes.length > 0) {
       const textoCondicoes = condicoes.join(', ').replace(/,([^,]*)$/, ' ou$1');
       doc.text(`Formas de pagamento: ${textoCondicoes}.`, 20, y);
       y += 6;
     }
-    
+
     if (paymentConditions.pix) {
       doc.text('PIX: 19957948000168', 20, y);
       y += 6;
@@ -425,7 +427,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
               <Checkbox
                 id="pix"
                 checked={paymentConditions.pix}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setPaymentConditions(prev => ({ ...prev, pix: checked as boolean }))
                 }
               />
@@ -435,7 +437,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
               <Checkbox
                 id="transferencia"
                 checked={paymentConditions.transferencia}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setPaymentConditions(prev => ({ ...prev, transferencia: checked as boolean }))
                 }
               />
@@ -445,7 +447,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
               <Checkbox
                 id="dinheiro"
                 checked={paymentConditions.dinheiro}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setPaymentConditions(prev => ({ ...prev, dinheiro: checked as boolean }))
                 }
               />
@@ -455,7 +457,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
               <Checkbox
                 id="cheque"
                 checked={paymentConditions.cheque}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setPaymentConditions(prev => ({ ...prev, cheque: checked as boolean }))
                 }
               />
@@ -465,7 +467,7 @@ export const InvoicePDFGenerator: React.FC<Props> = ({ invoice, onClose }) => {
               <Checkbox
                 id="cartao"
                 checked={paymentConditions.cartao}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setPaymentConditions(prev => ({ ...prev, cartao: checked as boolean }))
                 }
               />

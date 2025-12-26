@@ -45,22 +45,23 @@ export const ServiceOrderPDFGenerator: React.FC<Props> = ({ order, onClose }) =>
 
         try {
             const logoBase64 = await loadImageAsBase64(logopath);
-            doc.addImage(logoBase64, 'PNG', 20, 10, 30, 30);
+            doc.addImage(logoBase64, 'PNG', 20, 10, 22, 22); // Reduced logo size
         } catch (e) {
             console.warn('Erro ao carregar logo', e);
         }
 
-        doc.setFontSize(12);
+        doc.setFontSize(10); // Reduced font size
         doc.setFont(undefined, 'bold');
-        doc.text('RMSoluções', 60, y);
+        doc.text('RMSoluções', 50, y);
         doc.setFont(undefined, 'normal');
-        doc.text('MARCIO JOSE LASTORIA 26654674880 | Email: rmsoldas@hotmail.com', 60, (y += 6));
-        doc.text('CNPJ: 19.957.948/0001-68                        | Telefone: +55 (19) 99652-4173', 60, (y += 6));
-        doc.text('Avenida Ângelo Franzini, 2438, barracão', 60, (y += 6));
-        doc.text('Residencial Bosque de Versalles, Araras-SP', 60, (y += 6));
-        doc.text('CEP 13609-391', 60, (y += 6));
-        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 60, (y += 6));
-        y += 10;
+        doc.setFontSize(9); // Reduced details font size
+        doc.text('MARCIO JOSE LASTORIA 26654674880 | Email: rmsoldas@hotmail.com', 50, (y += 5));
+        doc.text('CNPJ: 19.957.948/0001-68                        | Telefone: +55 (19) 99652-4173', 50, (y += 4));
+        doc.text('Avenida Ângelo Franzini, 2438, barracão', 50, (y += 4));
+        doc.text('Residencial Bosque de Versalles, Araras-SP', 50, (y += 4));
+        doc.text('CEP 13609-391', 50, (y += 4));
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 50, (y += 4));
+        y += 8;
 
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
