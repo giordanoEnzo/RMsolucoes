@@ -25,7 +25,7 @@ const Reports = () => {
   const [showCSVDetails, setShowCSVDetails] = useState(false);
   const { startDate, endDate } = useDateRange(dateRange);
   const { exportServiceOrdersToCSV } = useReportExport();
-  
+
   useRealtimeReports();
 
   const { data: ordersStats } = useQuery({
@@ -58,13 +58,29 @@ const Reports = () => {
         totalOrders: data.length,
         statusCount,
         totalRevenue,
-        chartData: Object.entries(statusCount).map(([status, count]) => ({
-          status: status === 'received' ? 'Recebida' :
-                 status === 'in_progress' ? 'Em Andamento' :
-                 status === 'completed' ? 'Concluída' :
-                 status === 'delivered' ? 'Entregue' : status,
-          count: count as number
-        }))
+        chartData: Object.entries(statusCount).map(([status, count]) => {
+          const statusLabels: Record<string, string> = {
+            'pending': 'Pendente',
+            'in_progress': 'Em Produção',
+            'production': 'Em Produção',
+            'on_hold': 'Em Espera',
+            'stopped': 'Paralisado',
+            'quality_control': 'Controle de Qualidade',
+            'ready_for_pickup': 'Aguardando Retirada',
+            'awaiting_installation': 'Aguardando Instalação',
+            'to_invoice': 'Faturar',
+            'invoiced': 'Faturada',
+            'completed': 'Finalizado',
+            'cancelled': 'Cancelado',
+            'delivered': 'Entregue',
+            'received': 'Recebida'
+          };
+
+          return {
+            status: statusLabels[status] || status,
+            count: count as number
+          };
+        })
       };
     },
     enabled: !!profile,
@@ -134,8 +150,8 @@ const Reports = () => {
       {/* Date Range Filter */}
       <DateRangeFilter value={dateRange} onValueChange={setDateRange} />
 
-      
-      
+
+
 
       {/* Wrapper div with ID for PDF export */}
       <div id="reports-content">
@@ -149,11 +165,11 @@ const Reports = () => {
             <CardContent>
               <div className="text-2xl font-bold">{ordersStats?.totalOrders || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {dateRange === 'current_month' ? 'Este mês' : 
-                 dateRange === 'last_month' ? 'Mês passado' :
-                 dateRange === 'current_week' ? 'Esta semana' :
-                 dateRange === 'last_week' ? 'Semana passada' :
-                 'Período selecionado'}
+                {dateRange === 'current_month' ? 'Este mês' :
+                  dateRange === 'last_month' ? 'Mês passado' :
+                    dateRange === 'current_week' ? 'Esta semana' :
+                      dateRange === 'last_week' ? 'Semana passada' :
+                        'Período selecionado'}
               </p>
             </CardContent>
           </Card>
@@ -168,11 +184,11 @@ const Reports = () => {
                 R$ {ordersStats?.totalRevenue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
               </div>
               <p className="text-xs text-muted-foreground">
-                {dateRange === 'current_month' ? 'Este mês' : 
-                 dateRange === 'last_month' ? 'Mês passado' :
-                 dateRange === 'current_week' ? 'Esta semana' :
-                 dateRange === 'last_week' ? 'Semana passada' :
-                 'Período selecionado'}
+                {dateRange === 'current_month' ? 'Este mês' :
+                  dateRange === 'last_month' ? 'Mês passado' :
+                    dateRange === 'current_week' ? 'Esta semana' :
+                      dateRange === 'last_week' ? 'Semana passada' :
+                        'Período selecionado'}
               </p>
             </CardContent>
           </Card>
@@ -242,13 +258,13 @@ const Reports = () => {
                   {showCSVDetails ? 'Ocultar detalhes dos campos' : 'Ver detalhes dos campos incluídos'}
                 </button>
               </div>
-              
+
               <div className="border-t pt-4">
                 <h3 className="text-lg font-semibold mb-2">Relatórios em Excel</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Relatórios resumidos e gráficos em formato Excel.
                 </p>
-                <ReportExportButtons 
+                <ReportExportButtons
                   data={{
                     ordersStats,
                     employeesCount,

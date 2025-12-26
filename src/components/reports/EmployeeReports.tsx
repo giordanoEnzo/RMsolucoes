@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Users, Clock, Target, TrendingUp, Loader2 } from 'lucide-react';
 
+import CurrentActivities from './CurrentActivities';
+
 const EmployeeReports = () => {
   const { data: employeeStats, isLoading } = useQuery({
     queryKey: ['employee-stats'],
@@ -86,6 +88,8 @@ const EmployeeReports = () => {
         </Card>
       </div>
 
+      <CurrentActivities />
+
       {/* Tabela Detalhada */}
       <Card>
         <CardHeader>
@@ -106,27 +110,26 @@ const EmployeeReports = () => {
               </TableHeader>
               <TableBody>
                 {employeeStats.map((employee) => {
-                  const completionRate = employee.total_tasks > 0 
+                  const completionRate = employee.total_tasks > 0
                     ? ((employee.completed_tasks / employee.total_tasks) * 100).toFixed(1)
                     : '0.0';
-                  
+
                   return (
                     <TableRow key={employee.worker_id}>
                       <TableCell className="font-medium">
-                        {employee.worker_name} ({employee.worker_role === 'admin' ? 'Administrador' : employee.worker_role === 'manager' ? 'Gerente' : 'Operário'})
+                        {employee.worker_name}
                       </TableCell>
                       <TableCell>{employee.total_tasks}</TableCell>
                       <TableCell>{employee.completed_tasks}</TableCell>
                       <TableCell>{Number(employee.total_hours_worked).toFixed(1)}h</TableCell>
                       <TableCell>{Number(employee.avg_hours_per_task).toFixed(1)}h</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          Number(completionRate) >= 80 
-                            ? 'bg-green-100 text-green-800'
-                            : Number(completionRate) >= 60
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${Number(completionRate) >= 80
+                          ? 'bg-green-100 text-green-800'
+                          : Number(completionRate) >= 60
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-red-100 text-red-800'
-                        }`}>
+                          }`}>
                           {completionRate}%
                         </span>
                       </TableCell>
