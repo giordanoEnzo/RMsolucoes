@@ -32,6 +32,8 @@ export interface ServiceOrder {
   urgency: Urgency;
   assigned_worker_id?: string;
   deadline?: string;
+  service_start_date?: string;
+  total_hours?: number;
   created_by?: string;
   created_at: string;
   updated_at: string;

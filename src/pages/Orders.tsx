@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useServiceOrders, useWorkers } from '../hooks/useServiceOrders';
-import OrderCard from '../components/orders/OrderCard';
+import OrdersTable from '../components/orders/OrdersTable';
 import CreateOrderDialog from '../components/orders/CreateOrderDialog';
 import EditOrderDialog from '../components/orders/EditOrderDialog';
 import EditOrderDialogManager from '../components/orders/EditOrderDialogManager';
@@ -277,15 +277,12 @@ const Orders = () => {
       {/* Orders List */}
       <div className="space-y-4">
         {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onEdit={canManageOrders ? () => handleEditOrder(order) : undefined}
-              onDelete={canManageOrders ? () => handleDeleteOrder(order) : undefined}
-              onView={() => handleViewOrder(order)}
-            />
-          ))
+          <OrdersTable
+            orders={filteredOrders}
+            onEdit={canManageOrders ? handleEditOrder : undefined}
+            onDelete={canManageOrders ? handleDeleteOrder : undefined}
+            onView={handleViewOrder}
+          />
         ) : (
           <Card className="text-center py-12">
             <CardContent>
