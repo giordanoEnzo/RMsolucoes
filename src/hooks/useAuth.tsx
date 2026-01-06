@@ -38,11 +38,11 @@ export const useAuthProvider = () => {
       try {
         // Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
+
         if (mounted) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
-          
+
           if (initialSession?.user) {
             // Fetch user profile
             const { data: profileData } = await supabase
@@ -50,7 +50,7 @@ export const useAuthProvider = () => {
               .select('*')
               .eq('id', initialSession.user.id)
               .single();
-            
+
             if (mounted && profileData) {
               setProfile({
                 ...profileData,
@@ -72,24 +72,24 @@ export const useAuthProvider = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        
+
         console.log('Auth state changed:', event, session);
-        
+
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           // Fetch user profile in background
           setTimeout(async () => {
             if (!mounted) return;
-            
+
             try {
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single();
-              
+
               if (mounted && profileData) {
                 setProfile({
                   ...profileData,
@@ -103,7 +103,7 @@ export const useAuthProvider = () => {
         } else {
           setProfile(null);
         }
-        
+
         if (event === 'SIGNED_OUT') {
           setProfile(null);
           console.log('User signed out successfully');
@@ -196,22 +196,22 @@ export const useAuthProvider = () => {
   const signOut = async () => {
     try {
       console.log('Iniciando logout...');
-      
+
       // Clear local state first
       setUser(null);
       setProfile(null);
       setSession(null);
-      
+
       // Then sign out from Supabase
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         console.error('Erro ao fazer logout:', error);
         throw error;
       }
-      
+
       console.log('Logout realizado com sucesso');
-      
+
     } catch (error) {
       console.error('Erro durante o processo de logout:', error);
       // Even if there's an error, clear the local state and redirect
