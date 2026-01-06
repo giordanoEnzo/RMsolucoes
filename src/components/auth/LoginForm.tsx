@@ -27,16 +27,28 @@ const LoginForm = () => {
     }
 
     setIsLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    try {
+      const { error } = await signIn(loginEmail, loginPassword);
 
-    if (error) {
-      toast.error('Erro no login: ' + error.message);
-    } else {
-      toast.success('Login realizado com sucesso!');
-      navigate("/dashboard", { replace: true }); // 👈 Redireciona para o dashboard
+      if (error) {
+        console.error("Login error details:", error);
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Email ou senha incorretos.");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Email não confirmado. Verifique sua caixa de entrada.");
+        } else {
+          toast.error(`Erro no login: ${error.message}`);
+        }
+      } else {
+        toast.success('Login realizado com sucesso!');
+        navigate("/dashboard", { replace: true });
+      }
+    } catch (err) {
+      console.error("Unexpected login error:", err);
+      toast.error("Ocorreu um erro inesperado ao tentar fazer login.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
