@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../ui/button';
-import { Download, Phone } from 'lucide-react';
+import { Download, Phone, Share2 } from 'lucide-react';
 import { Budget, BudgetItem } from '../../types/database';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -85,24 +85,6 @@ export const BudgetPDFGenerator: React.FC<BudgetPDFGeneratorProps> = ({ budget, 
       return doc;
     }
 
-    const items = budget.budget_items.map((item) => {
-      // Garantir que temos os dados corretos
-      const serviceName = item.service_name || '';
-      const description = item.description || '';
-
-      // Criar o texto da descrição com quebras de linha
-      const descriptionText = description ? `\n${description}` : '';
-
-      return [
-        `${serviceName}${descriptionText}`,
-        'und.',
-        `R$ ${item.unit_price.toFixed(2)}`,
-        item.quantity.toString(),
-        `R$ ${item.total_price.toFixed(2)}`
-      ];
-    });
-
-
     const rows = budget.budget_items.map((item) => {
       const serviceName = item.service_name || '';
       const description = item.description || '';
@@ -145,9 +127,7 @@ export const BudgetPDFGenerator: React.FC<BudgetPDFGeneratorProps> = ({ budget, 
       },
     });
 
-
-
-    y = doc.lastAutoTable.finalY + 10;
+    y = (doc as any).lastAutoTable.finalY + 10;
 
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
@@ -277,14 +257,44 @@ export const BudgetPDFGenerator: React.FC<BudgetPDFGeneratorProps> = ({ budget, 
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const doc = await generatePDFDocument();
+      const blob = doc.output('blob');
+      const file = new File([blob], `orcamento_${budget.budget_number}.pdf`, {
+        type: 'application/pdf',
+      });
+
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Orçamento ${budget.budget_number}`,
+          text: `Orçamento para ${budget.client_name}`,
+        });
+        toast.success('Compartilhamento iniciado!');
+      } else {
+        // Fallback for devices/browsers that don't support file sharing
+        toast.error('O seu navegador não suporta compartilhamento de arquivos direto. Usando método alternativo...');
+        await sendPDFViaWhatsApp();
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Erro ao compartilhar:', error);
+        toast.error('Erro ao compartilhar documento.');
+      }
+    }
+  };
+
   return (
     <div className="flex gap-2">
-      <Button onClick={handleDownloadPDF} variant="outline" size="sm">
-        <Download className="w-4 h-4 mr-2" />
-        Baixar PDF
+      <Button onClick={handleDownloadPDF} variant="outline" size="sm" title="Baixar PDF">
+        <Download className="w-4 h-4" />
       </Button>
-      <Button onClick={sendPDFViaWhatsApp} variant="outline" size="sm" aria-label="Enviar WhatsApp">
-        <Phone className="w-5 h-5" />
+      <Button onClick={sendPDFViaWhatsApp} variant="outline" size="sm" title="Enviar para cliente via WhatsApp" aria-label="Enviar WhatsApp">
+        <Phone className="w-4 h-4" />
+      </Button>
+      <Button onClick={handleShare} variant="outline" size="sm" title="Compartilhar" aria-label="Compartilhar">
+        <Share2 className="w-4 h-4" />
       </Button>
     </div>
   );
