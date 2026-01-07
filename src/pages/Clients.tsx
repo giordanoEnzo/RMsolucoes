@@ -8,7 +8,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Plus, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
 import ClientsTable from '../components/clients/ClientsTable';
@@ -177,6 +178,26 @@ const Clients = () => {
     );
   }
 
+  const handleExport = () => {
+    const dataToExport = clients.map(client => ({
+      'Nome': client.name,
+      'Razão Social': client.company_name,
+      'CPF/CNPJ': client.cnpj_cpf,
+      'Contato': client.contact,
+      'Endereço': client.address,
+      'Número': client.number,
+      'Bairro': client.neighborhood,
+      'Complemento': client.complement,
+      'CEP': client.cep,
+      'Estado': client.state
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+    XLSX.writeFile(wb, "clientes.xlsx");
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -184,71 +205,77 @@ const Clients = () => {
           <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
           <p className="text-gray-600 mt-1">Gerencie os clientes da empresa - Atualizações em tempo real</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Nome</Label>
-                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-              </div>
-              <div>
-                <Label>Razão Social</Label>
-                <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
-              </div>
-              <div>
-                <Label>CNPJ/CPF</Label>
-                <Input value={formData.cnpj_cpf} onChange={handleCnpjCpfChange} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={18} />
-              </div>
-              <div>
-                <Label>Contato</Label>
-                <Input
-                  value={formData.contact}
-                  onChange={handlePhoneChange}
-                  placeholder="+55 (35) 3539-3344"
-                />
-              </div>
-              <div>
-                <Label>Endereço</Label>
-                <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>Número</Label>
-                  <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Bairro</Label>
-                  <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>CEP</Label>
-                  <Input value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Complemento</Label>
-                  <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
-                </div>
-              </div>
-              <div>
-                <Label>Estado</Label>
-                <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
-              </div>
-              <Button type="submit" className="w-full">
-                {editingClient ? 'Atualizar' : 'Criar'} Cliente
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" /> Novo Cliente
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label>Nome</Label>
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Razão Social</Label>
+                  <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>CNPJ/CPF</Label>
+                  <Input value={formData.cnpj_cpf} onChange={handleCnpjCpfChange} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={18} />
+                </div>
+                <div>
+                  <Label>Contato</Label>
+                  <Input
+                    value={formData.contact}
+                    onChange={handlePhoneChange}
+                    placeholder="+55 (35) 3539-3344"
+                  />
+                </div>
+                <div>
+                  <Label>Endereço</Label>
+                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Número</Label>
+                    <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Bairro</Label>
+                    <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>CEP</Label>
+                    <Input value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Complemento</Label>
+                    <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
+                </div>
+                <Button type="submit" className="w-full">
+                  {editingClient ? 'Atualizar' : 'Criar'} Cliente
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="mb-4 max-w-md">
