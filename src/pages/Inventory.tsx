@@ -27,6 +27,7 @@ const Inventory = () => {
   const [formData, setFormData] = useState({
     name: '',
     current_quantity: 0,
+    min_stock: 10,
     purchase_price: 0,
   });
 
@@ -47,7 +48,7 @@ const Inventory = () => {
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLowStock = showLowStockOnly ? item.current_quantity <= 10 : true;
+      const matchesLowStock = showLowStockOnly ? item.current_quantity <= (item.min_stock ?? 10) : true;
       return matchesSearch && matchesLowStock;
     });
   }, [items, searchTerm, showLowStockOnly]);
@@ -116,7 +117,7 @@ const Inventory = () => {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', current_quantity: 0, purchase_price: 0 });
+    setFormData({ name: '', current_quantity: 0, min_stock: 10, purchase_price: 0 });
     setEditingItem(null);
   };
 
@@ -134,6 +135,7 @@ const Inventory = () => {
     setFormData({
       name: item.name,
       current_quantity: item.current_quantity,
+      min_stock: item.min_stock ?? 10,
       purchase_price: item.purchase_price ?? 0,
     });
     setIsDialogOpen(true);
@@ -188,6 +190,20 @@ const Inventory = () => {
                     onChange={(e) => setFormData({ ...formData, current_quantity: parseInt(e.target.value) || 0 })}
                     required
                   />
+                </div>
+                <div>
+                  <Label htmlFor="min_stock">Estoque Mínimo (Alerta)</Label>
+                  <Input
+                    id="min_stock"
+                    type="number"
+                    min="0"
+                    value={formData.min_stock}
+                    onChange={(e) => setFormData({ ...formData, min_stock: parseInt(e.target.value) || 0 })}
+                    required
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Defina a quantidade para alerta de estoque baixo.
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="purchase_price">Valor Pago na Compra</Label>

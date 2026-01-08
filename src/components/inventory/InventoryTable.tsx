@@ -53,7 +53,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                     <div className="flex items-center gap-2 font-medium text-slate-800">
                                         <Package size={14} className="text-slate-500" />
                                         {item.name}
-                                        {item.current_quantity <= 10 && (
+                                        {item.current_quantity <= (item.min_stock ?? 10) && (
                                             <div className="flex items-center text-orange-600 text-xs ml-2" title="Estoque baixo">
                                                 <AlertTriangle size={12} className="mr-1" />
                                                 Baixo
@@ -63,7 +63,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className={`font-bold ${item.current_quantity <= 10 ? 'text-orange-600' : 'text-blue-600'}`}>
+                                        <span className={`font-bold ${item.current_quantity <= (item.min_stock ?? 10) ? 'text-orange-600' : 'text-blue-600'}`}>
                                             {item.current_quantity}
                                         </span>
                                         <span className="text-xs text-slate-500">unidades</span>
