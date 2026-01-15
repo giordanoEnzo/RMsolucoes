@@ -9,7 +9,7 @@ import {
 } from '../ui/table';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { FileText, Trash2, Edit, ShoppingCart } from 'lucide-react';
+import { FileText, Trash2, Edit, Wrench } from 'lucide-react';
 import { Budget, BudgetItem } from '../../types/database';
 import { BudgetPDFGenerator } from './BudgetPDFGenerator';
 import { TablePagination } from '../ui/TablePagination';
@@ -43,9 +43,12 @@ const BudgetsTable: React.FC<BudgetsTableProps> = ({
     const getStatusColor = (status: string) => {
         const colors: { [key: string]: string } = {
             'draft': 'bg-gray-100 text-gray-800',
+            'pendente': 'bg-gray-100 text-gray-800',
             'sent': 'bg-blue-100 text-blue-800',
             'approved': 'bg-green-100 text-green-800',
+            'aprovado': 'bg-green-100 text-green-800',
             'rejected': 'bg-red-100 text-red-800',
+            'reprovado': 'bg-red-100 text-red-800',
             'expired': 'bg-orange-100 text-orange-800',
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
@@ -54,9 +57,12 @@ const BudgetsTable: React.FC<BudgetsTableProps> = ({
     const getStatusLabel = (status: string) => {
         const labels: { [key: string]: string } = {
             'draft': 'Rascunho',
+            'pendente': 'Pendente',
             'sent': 'Enviado',
             'approved': 'Aprovado',
+            'aprovado': 'Aprovado',
             'rejected': 'Rejeitado',
+            'reprovado': 'Rejeitado',
             'expired': 'Expirado',
         };
         return labels[status] || status;
@@ -112,7 +118,7 @@ const BudgetsTable: React.FC<BudgetsTableProps> = ({
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <div className="flex justify-end items-center gap-1 flex-wrap max-w-[300px] ml-auto">
+                                    <div className="flex justify-end items-center gap-1 flex-wrap ml-auto">
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -126,7 +132,7 @@ const BudgetsTable: React.FC<BudgetsTableProps> = ({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            disabled={isCreatingOrder || ['approved', 'rejected', 'expired'].includes(budget.status)}
+                                            disabled={isCreatingOrder || ['approved', 'rejected', 'expired', 'aprovado', 'reprovado'].includes(budget.status)}
                                             onClick={() => onEdit(budget)}
                                             className="h-8 w-8 p-0 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-50"
                                             title="Editar"
@@ -139,16 +145,16 @@ const BudgetsTable: React.FC<BudgetsTableProps> = ({
                                             <BudgetPDFGenerator budget={budget} />
                                         </div>
 
-                                        {budget.status === 'sent' && (
+                                        {['sent', 'approved', 'aprovado'].includes(budget.status) && (
                                             <Button
+                                                variant="ghost"
                                                 size="sm"
                                                 onClick={() => onCreateOrder(budget.id)}
                                                 disabled={isCreatingOrder}
-                                                className="h-8 px-2 bg-green-600 hover:bg-green-700 text-white text-xs ml-1"
+                                                className="h-8 w-8 p-0 hover:text-green-600 hover:bg-green-50"
                                                 title="Criar Ordem de Serviço"
                                             >
-                                                <ShoppingCart size={14} className="mr-1" />
-                                                Criar OS
+                                                <Wrench size={16} />
                                             </Button>
                                         )}
 
