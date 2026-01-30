@@ -4,6 +4,7 @@ import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { ServiceOrder } from '../../types/database';
 import { supabase } from '../../integrations/supabase/client';
+import { useAuth } from '../../hooks/useAuth';
 
 const logopath = '/logonum.png';
 const assinaturaPath = '/AssinaturaMarcioOficial.png';
@@ -30,6 +31,7 @@ const loadImageAsBase64 = (url: string): Promise<string> => {
 };
 
 export const ServiceOrderPDFGenerator: React.FC<Props> = ({ order, onClose }) => {
+    const { profile } = useAuth();
 
     useEffect(() => {
         const generate = async () => {
@@ -120,17 +122,38 @@ export const ServiceOrderPDFGenerator: React.FC<Props> = ({ order, onClose }) =>
                 doc.text('Itens do Serviço:', 20, y);
                 y += 4; // Ajuste para tabela
 
-                const tableBody = items.map((item) => [
-                    item.service_name + (item.service_description ? ` - ${item.service_description}` : ''),
-                    item.quantity.toString()
-                ]);
+                const isAdmin = profile?.role === 'admin';
+
+                const tableBody = items.map((item) => {
+                    const row = [
+                        item.service_name + (item.service_description ? ` - ${item.service_description}` : ''),
+                        item.quantity.toString()
+                    ];
+
+                    if (isAdmin) {
+                        row.push(
+                            item.unit_price ? Number(item.unit_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00',
+                            item.sale_value ? Number(item.sale_value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'
+                        );
+                    }
+                    return row;
+                });
+
+                const tableHead = isAdmin
+                    ? [['Item / Serviço', 'Qtd', 'Vl. Unit.', 'Vl. Total']]
+                    : [['Item / Serviço', 'Qtd']];
 
                 autoTable(doc, {
                     startY: y,
-                    head: [['Item / Serviço', 'Qtd']],
+                    head: tableHead,
                     body: tableBody,
                     styles: { fontSize: 10, cellPadding: 3 },
-                    columnStyles: {
+                    columnStyles: isAdmin ? {
+                        0: { cellWidth: 110 },
+                        1: { cellWidth: 20, halign: 'center' },
+                        2: { cellWidth: 30, halign: 'right' },
+                        3: { cellWidth: 30, halign: 'right' },
+                    } : {
                         0: { cellWidth: 150 }, // Coluna de descrição larga
                         1: { cellWidth: 20, halign: 'center' }, // Qtd centralizada
                     },
@@ -143,6 +166,14 @@ export const ServiceOrderPDFGenerator: React.FC<Props> = ({ order, onClose }) =>
 
                 // Atualizar Y após a tabela
                 y = (doc as any).lastAutoTable.finalY + 10;
+
+                if (isAdmin && order.sale_value) {
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    const totalText = `Valor Total: ${Number(order.sale_value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                    doc.text(totalText, pageWidth - 20, y, { align: 'right' });
+                    y += 10;
+                }
             }
         } catch (err) {
             console.error('Erro ao buscar itens para PDF', err);
