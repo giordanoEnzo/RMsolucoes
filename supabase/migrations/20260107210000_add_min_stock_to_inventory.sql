@@ -1,0 +1,1 @@
+ALTER TABLE inventory_items ADD COLUMN min_stock INTEGER DEFAULT 10;
